@@ -1,5 +1,7 @@
 #include <cstdint>
+#include <string>
 #include <fstream>
+#include <sstream>
 #include <filesystem>
 
 namespace microstl
@@ -9,7 +11,7 @@ namespace microstl
 	public:
 		virtual ~IReceiver() {}
 		virtual void receiveName(const std::string& name) = 0;
-		virtual void receiveFace(const double v1[3], const double v2[3], const double v3[3]) = 0;
+		virtual void receiveFace(const double v1[3], const double v2[3], const double v3[3], const double n[3]) = 0;
 	};
 
 	enum class Result : uint16_t {
@@ -50,7 +52,7 @@ namespace microstl
 	std::string stringTrim(const std::string& line)
 	{
 		std::string result;
-		int32_t index = 0;
+		size_t index = 0;
 		while (index < line.size() && (line[index] == '\t' || line[index] == ' ' || line[index] == '\r' || line[index] == '\n'))
 		{
 			index++;
@@ -80,6 +82,24 @@ namespace microstl
 		return memcmp(prefix, str.data(), strlen(prefix)) == 0;
 	}
 
+	bool stringParseThreeValues(const std::string& str, double& v1, double& v2, double& v3)
+	{
+		std::stringstream ss(str);
+		ss >> v1;
+		if (!ss)
+			return false;
+
+		ss >> v2;
+		if (!ss)
+			return false;
+
+		ss >> v3;
+		if (!ss)
+			return false;
+
+		return true;
+	}
+
 	Result parseAsciiStream(std::ifstream& ifs, IReceiver& receiver)
 	{
 		// State machine variables
@@ -87,6 +107,8 @@ namespace microstl
 		bool activeFacet = false;
 		bool activeLoop = false;
 		size_t solidCount = 0, facetCount = 0, loopCount = 0, vertexCount = 0;
+		double n[3] = {0,};
+		double v[9] = {0,};
 
 		// Line parse with loop to work the state machine
 		while (true)
@@ -118,6 +140,9 @@ namespace microstl
 				if (!activeSolid || activeLoop || activeFacet)
 					return Result::InvalidFile;
 				activeFacet = true;
+				line = stringTrim(line.substr(12));
+				if (!stringParseThreeValues(line, n[0], n[1], n[2]))
+					return Result::InvalidFile;
 			}
 			if (stringStartsWith(line, "endfacet"))
 			{
@@ -126,6 +151,7 @@ namespace microstl
 				activeFacet = false;
 				facetCount++;
 				loopCount = 0;
+				receiver.receiveFace(v + 0, v + 3, v + 6, n);
 			}
 			if (stringStartsWith(line, "outer loop"))
 			{
@@ -143,7 +169,10 @@ namespace microstl
 			}
 			if (stringStartsWith(line, "vertex"))
 			{
-				if (!activeSolid || !activeFacet || !activeLoop)
+				if (!activeSolid || !activeFacet || !activeLoop || vertexCount >= 3)
+					return Result::InvalidFile;
+				line = stringTrim(line.substr(6));
+				if (!stringParseThreeValues(line, v[vertexCount * 3 + 0], v[vertexCount * 3 + 1], v[vertexCount * 3 + 2]))
 					return Result::InvalidFile;
 				vertexCount++;
 			}
