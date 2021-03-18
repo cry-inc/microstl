@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 
-struct ConsoleReceiver : microstl::IHandler
+struct ConsoleReceiver : microstl::Parser::Handler
 {
 	void onAscii() override
 	{
@@ -38,7 +38,7 @@ struct ConsoleReceiver : microstl::IHandler
 	}
 };
 
-struct SimpleReceiver : microstl::IHandler
+struct SimpleReceiver : microstl::Parser::Handler
 {
 	struct Facet
 	{
@@ -71,15 +71,15 @@ int main()
 	std::filesystem::path halfDonutPath = "../../../testdata/half_donut_ascii.stl";
 	std::filesystem::path binaryPath = "../../../testdata/stencil_binary.stl";
 	
-	microstl::Result result1 = microstl::parseStlFile(simplePath, ConsoleReceiver());
+	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, ConsoleReceiver());
 	std::cout << "Result 1: " << uint16_t(result1) << std::endl;
 
 	SimpleReceiver mesh2;
-	microstl::Result result2 = microstl::parseStlFile(halfDonutPath, mesh2);
+	microstl::Parser::Result result2 = microstl::Parser::parseStlFile(halfDonutPath, mesh2);
 	std::cout << "Result 2: " << uint16_t(result2) << std::endl;
 
 	SimpleReceiver mesh3;
-	microstl::Result result3 = microstl::parseStlFile(binaryPath, mesh3);
+	microstl::Parser::Result result3 = microstl::Parser::parseStlFile(binaryPath, mesh3);
 	std::cout << "Result 3: " << uint16_t(result3) << std::endl;
 
 	return 0;
