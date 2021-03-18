@@ -11,7 +11,7 @@ namespace microstl
 	public:
 		virtual ~IReceiver() {}
 		virtual void receiveName(const std::string& name) = 0;
-		virtual void receiveFace(const double v1[3], const double v2[3], const double v3[3], const double n[3]) = 0;
+		virtual void receiveFace(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
 	};
 
 	enum class Result : uint16_t {
@@ -82,7 +82,7 @@ namespace microstl
 		return memcmp(prefix, str.data(), strlen(prefix)) == 0;
 	}
 
-	bool stringParseThreeValues(const std::string& str, double& v1, double& v2, double& v3)
+	bool stringParseThreeValues(const std::string& str, float& v1, float& v2, float& v3)
 	{
 		std::stringstream ss(str);
 		ss >> v1;
@@ -107,8 +107,8 @@ namespace microstl
 		bool activeFacet = false;
 		bool activeLoop = false;
 		size_t solidCount = 0, facetCount = 0, loopCount = 0, vertexCount = 0;
-		double n[3] = {0,};
-		double v[9] = {0,};
+		float n[3] = {0,};
+		float v[9] = {0,};
 
 		// Line parse with loop to work the state machine
 		while (true)
@@ -184,17 +184,44 @@ namespace microstl
 		return Result::Okay;
 	}
 
+	Result parseBinaryStream(std::ifstream& ifs, IReceiver& receiver)
+	{
+		char buffer[80];
+		ifs.read(buffer, sizeof(buffer));
+		if (!ifs)
+			return Result::UnexpectedFileEnd;
+		ifs.read(buffer, 4);
+		if (!ifs)
+			return Result::UnexpectedFileEnd;
+		uint32_t triangles = reinterpret_cast<uint32_t*>(buffer)[0];
+		for (size_t t = 0; t < triangles; t++)
+		{
+			ifs.read(buffer, 50);
+			if (!ifs)
+				return Result::UnexpectedFileEnd;
+			float n[3];
+			float v[9];
+			memcpy(n, buffer + 0, 12);
+			memcpy(v + 0, buffer + 12, 12);
+			memcpy(v + 3, buffer + 24, 12);
+			memcpy(v + 6, buffer + 36, 12);
+			receiver.receiveFace(v + 0, v + 3, v + 6, n);
+		}
+
+		return Result::Okay;
+	}
+
 	Result parseStlStream(std::ifstream& ifs, IReceiver& receiver)
 	{
 		if (isAsciiFormat(ifs))
 			return parseAsciiStream(ifs, receiver);
 		else
-			return Result::NotImplementedError;
+			return parseBinaryStream(ifs, receiver);
 	}
 
 	Result parseStlFile(std::filesystem::path& filePath, IReceiver& receiver)
 	{
-		std::ifstream ifs(filePath);
+		std::ifstream ifs(filePath, std::ios::binary);
 		if (!ifs.is_open())
 			return Result::FileReadError;
 
