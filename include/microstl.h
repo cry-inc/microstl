@@ -51,7 +51,7 @@ namespace microstl
 	{
 		std::string result;
 		int32_t index = 0;
-		while (index < line.size() && (line[index] == '\t' || line[index] == ' '))
+		while (index < line.size() && (line[index] == '\t' || line[index] == ' ' || line[index] == '\r' || line[index] == '\n'))
 		{
 			index++;
 		}
@@ -66,7 +66,7 @@ namespace microstl
 		}
 
 		index = result.size() - 1;
-		while (index >= 0 && (result[index] == '\t' || result[index] == ' '))
+		while (index >= 0 && (result[index] == '\t' || result[index] == ' ' || result[index] == '\r' || result[index] == '\n'))
 		{
 			index--;
 		}
