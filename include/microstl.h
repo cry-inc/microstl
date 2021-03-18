@@ -82,21 +82,76 @@ namespace microstl
 
 	Result parseAsciiStream(std::ifstream& ifs, IReceiver& receiver)
 	{
-		std::string line;
-		bool res = readNextLine(ifs, line);
-		if (!res)
+		// State machine variables
+		bool activeSolid = false;
+		bool activeFacet = false;
+		bool activeLoop = false;
+		size_t solidCount = 0, facetCount = 0, loopCount = 0, vertexCount = 0;
+
+		// Line parse with loop to work the state machine
+		while (true)
 		{
-			return Result::UnexpectedFileEnd;
+			std::string line;
+			if (!readNextLine(ifs, line))
+				break;
+			line = stringTrim(line);
+			if (stringStartsWith(line, "solid"))
+			{
+				if (activeSolid || solidCount != 0)
+					return Result::InvalidFile;
+				activeSolid = true;
+				if (line.length() > 5)
+				{
+					std::string name = stringTrim(line.substr(5));
+					receiver.receiveName(name);
+				}
+			}
+			if (stringStartsWith(line, "endsolid"))
+			{
+				if (!activeSolid || activeFacet || activeLoop)
+					return Result::InvalidFile;
+				activeSolid = false;
+				solidCount++;
+			}
+			if (stringStartsWith(line, "facet normal"))
+			{
+				if (!activeSolid || activeLoop || activeFacet)
+					return Result::InvalidFile;
+				activeFacet = true;
+			}
+			if (stringStartsWith(line, "endfacet"))
+			{
+				if (!activeSolid || activeLoop || !activeFacet || loopCount != 1)
+					return Result::InvalidFile;
+				activeFacet = false;
+				facetCount++;
+				loopCount = 0;
+			}
+			if (stringStartsWith(line, "outer loop"))
+			{
+				if (!activeSolid || !activeFacet || activeLoop)
+					return Result::InvalidFile;
+				activeLoop = true;
+			}
+			if (stringStartsWith(line, "endloop"))
+			{
+				if (!activeSolid || !activeFacet || !activeLoop || vertexCount != 3)
+					return Result::InvalidFile;
+				activeLoop = false;
+				loopCount++;
+				vertexCount = 0;
+			}
+			if (stringStartsWith(line, "vertex"))
+			{
+				if (!activeSolid || !activeFacet || !activeLoop)
+					return Result::InvalidFile;
+				vertexCount++;
+			}
 		}
-		line = stringTrim(line);
-		if (!stringStartsWith(line, "solid"))
-		{
+
+		if (activeSolid || activeFacet || activeLoop || solidCount != 1)
 			return Result::InvalidFile;
-		}
-		if (line.length() > 5)
-		{
-			receiver.receiveName(stringTrim(line.substr(5)));
-		}
+
 		return Result::Okay;
 	}
 
