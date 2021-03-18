@@ -12,6 +12,12 @@ namespace microstl
 	public:
 		virtual ~IHandler() {}
 		
+		// Called when the parser is using ASCII mode before any other methods.
+		virtual void onAscii() {};
+
+		// Called when the parser is using binary mode before any other methods.
+		virtual void onBinary() {};
+
 		// Always called when parsing a binary STL. Before onFacet() is called for the first time.
 		virtual void onTriangleCount(uint32_t triangles) {};
 
@@ -109,6 +115,8 @@ namespace microstl
 
 	Result parseAsciiStream(std::ifstream& ifs, IHandler& handler)
 	{
+		handler.onAscii();
+
 		// State machine variables
 		bool activeSolid = false;
 		bool activeFacet = false;
@@ -185,14 +193,19 @@ namespace microstl
 			}
 		}
 
-		if (activeSolid || activeFacet || activeLoop || solidCount != 1)
+		if (activeSolid || activeFacet || activeLoop)
 			return Result::InvalidFile;
+
+		if (solidCount == 0)
+			return Result::UnexpectedEnd;
 
 		return Result::Success;
 	}
 
 	Result parseBinaryStream(std::ifstream& ifs, IHandler& handler)
 	{
+		handler.onBinary();
+
 		char buffer[80];
 		ifs.read(buffer, sizeof(buffer));
 		if (!ifs)
@@ -228,7 +241,7 @@ namespace microstl
 	Result parseStlFile(std::filesystem::path& filePath, IHandler& handler)
 	{
 		std::ifstream ifs(filePath, std::ios::binary);
-		if (!ifs.is_open())
+		if (!ifs)
 			return Result::FileReadError;
 
 		return parseStlStream(ifs, handler);

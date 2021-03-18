@@ -4,6 +4,16 @@
 
 struct ConsoleReceiver : microstl::IHandler
 {
+	void onAscii() override
+	{
+		std::cout << "ASCII mode enabled!" << std::endl;
+	}
+
+	void onBinary() override
+	{
+		std::cout << "Binary mode enabled!" << std::endl;
+	}
+
 	void onName(const std::string& name) override
 	{
 		std::cout << "Name: " << name << std::endl;
