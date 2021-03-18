@@ -24,6 +24,11 @@ struct ConsoleReceiver : microstl::IHandler
 		std::cout << "Triangles: " << triangles << std::endl;
 	}
 
+	void onError(size_t lineNumber) override
+	{
+		std::cout << "Error detected on line: " << lineNumber << std::endl;
+	}
+
 	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 	{
 		std::cout << "Face: " << v1[0] << "|" << v1[1] << "|" << v1[2] << ", "

@@ -24,15 +24,20 @@ namespace microstl
 		// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet().
 		virtual void onName(const std::string& name) {};
 
+		// Might be called in ASCII mode when an error is detected to signal the line number of the problem.
+		// Do not rely on this method to be called when an error occurs, its fully optional!
+		virtual void onError(size_t lineNumber) {};
+
 		// Will be called for each triangle (a.k.a facet/face) in the STL file
 		virtual void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
 	};
 
 	enum class Result : uint16_t {
-		Success = 0,
-		FileReadError = 1,
-		UnexpectedEnd = 2,
-		InvalidFile = 3,
+		Success = 0, // Everything went smooth, the STL file was parsed without issues
+		FileError = 1, // Unable to read the specified STL file
+		MissingDataError = 2, // STL data ended unexpectely and is incomplete or otherwise broken
+		UnexpectedError = 3, // Found an unexpected keyword or token in an ASCII STL file
+		ParserError = 4, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
 	};
 
 	bool isAsciiFormat(std::ifstream& ifs)
@@ -121,7 +126,7 @@ namespace microstl
 		bool activeSolid = false;
 		bool activeFacet = false;
 		bool activeLoop = false;
-		size_t solidCount = 0, facetCount = 0, loopCount = 0, vertexCount = 0;
+		size_t lineNumber = 0, solidCount = 0, facetCount = 0, loopCount = 0, vertexCount = 0;
 		float n[3] = {0,};
 		float v[9] = {0,};
 
@@ -131,11 +136,15 @@ namespace microstl
 			std::string line;
 			if (!readNextLine(ifs, line))
 				break;
+			lineNumber++;
 			line = stringTrim(line);
 			if (stringStartsWith(line, "solid"))
 			{
 				if (activeSolid || solidCount != 0)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeSolid = true;
 				if (line.length() > 5)
 				{
@@ -146,23 +155,35 @@ namespace microstl
 			if (stringStartsWith(line, "endsolid"))
 			{
 				if (!activeSolid || activeFacet || activeLoop)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeSolid = false;
 				solidCount++;
 			}
 			if (stringStartsWith(line, "facet normal"))
 			{
 				if (!activeSolid || activeLoop || activeFacet)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeFacet = true;
 				line = stringTrim(line.substr(12));
 				if (!stringParseThreeValues(line, n[0], n[1], n[2]))
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::ParserError;
+				}
 			}
 			if (stringStartsWith(line, "endfacet"))
 			{
 				if (!activeSolid || activeLoop || !activeFacet || loopCount != 1)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeFacet = false;
 				facetCount++;
 				loopCount = 0;
@@ -171,13 +192,19 @@ namespace microstl
 			if (stringStartsWith(line, "outer loop"))
 			{
 				if (!activeSolid || !activeFacet || activeLoop)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeLoop = true;
 			}
 			if (stringStartsWith(line, "endloop"))
 			{
 				if (!activeSolid || !activeFacet || !activeLoop || vertexCount != 3)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				activeLoop = false;
 				loopCount++;
 				vertexCount = 0;
@@ -185,19 +212,22 @@ namespace microstl
 			if (stringStartsWith(line, "vertex"))
 			{
 				if (!activeSolid || !activeFacet || !activeLoop || vertexCount >= 3)
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::UnexpectedError;
+				}
 				line = stringTrim(line.substr(6));
 				if (!stringParseThreeValues(line, v[vertexCount * 3 + 0], v[vertexCount * 3 + 1], v[vertexCount * 3 + 2]))
-					return Result::InvalidFile;
+				{
+					handler.onError(lineNumber);
+					return Result::ParserError;
+				}
 				vertexCount++;
 			}
 		}
 
-		if (activeSolid || activeFacet || activeLoop)
-			return Result::InvalidFile;
-
-		if (solidCount == 0)
-			return Result::UnexpectedEnd;
+		if (activeSolid || activeFacet || activeLoop || solidCount == 0)
+			return Result::MissingDataError;
 
 		return Result::Success;
 	}
@@ -209,17 +239,17 @@ namespace microstl
 		char buffer[80];
 		ifs.read(buffer, sizeof(buffer));
 		if (!ifs)
-			return Result::UnexpectedEnd;
+			return Result::MissingDataError;
 		ifs.read(buffer, 4);
 		if (!ifs)
-			return Result::UnexpectedEnd;
+			return Result::MissingDataError;
 		uint32_t triangles = reinterpret_cast<uint32_t*>(buffer)[0];
 		handler.onTriangleCount(triangles);
 		for (size_t t = 0; t < triangles; t++)
 		{
 			ifs.read(buffer, 50);
 			if (!ifs)
-				return Result::UnexpectedEnd;
+				return Result::MissingDataError;
 			float n[3];
 			float v[9];
 			memcpy(n, buffer + 0, 12);
@@ -242,7 +272,7 @@ namespace microstl
 	{
 		std::ifstream ifs(filePath, std::ios::binary);
 		if (!ifs)
-			return Result::FileReadError;
+			return Result::FileError;
 
 		return parseStlStream(ifs, handler);
 	};
