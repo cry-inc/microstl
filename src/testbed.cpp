@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 
-struct ConsoleReceiver : microstl::Parser::Handler
+struct ConsoleHandler : microstl::Parser::Handler
 {
 	void onAscii() override
 	{
@@ -31,33 +31,35 @@ struct ConsoleReceiver : microstl::Parser::Handler
 
 	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 	{
-		std::cout << "Face: " << v1[0] << "|" << v1[1] << "|" << v1[2] << ", "
+		std::cout << "Facet: " << n[0] << "|" << n[1] << "|" << n[2] << ", "
+			<< v1[0] << "|" << v1[1] << "|" << v1[2] << ", "
 			<< v2[0] << "|" << v2[1] << "|" << v2[2] << ", "
-			<< v3[0] << "|" << v3[1] << "|" << v3[2] << ", "
-			<< n[0] << "|" << n[1] << "|" << n[2] << std::endl;
+			<< v3[0] << "|" << v3[1] << "|" << v3[2] << std::endl;
 	}
 };
 
-struct SimpleReceiver : microstl::Parser::Handler
+struct MemoryMeshHandler : microstl::Parser::Handler
 {
 	struct Facet
 	{
-		std::vector<float> normal;
+		std::vector<float> normalVector;
 		std::vector<std::vector<float>> vertices;
 	};
 
-	std::string name;
+	std::string stlName;
+	bool ascii = false;
+	size_t errorLineNumber = 0;
 	std::vector<Facet> facets;
 
-	void onName(const std::string& name) override
-	{
-		this->name = name;
-	}
+	void onName(const std::string& name) override { stlName = name; }
+	void onAscii() override { ascii = true; }
+	void onBinary() override { ascii = false; }
+	void onError(size_t lineNumber) override { errorLineNumber = lineNumber; }
 
 	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 	{
 		Facet f;
-		f.normal = { n[0], n[1], n[2] };
+		f.normalVector = { n[0], n[1], n[2] };
 		f.vertices.push_back(std::vector<float>{v1[0], v1[1], v1[2]});
 		f.vertices.push_back(std::vector<float>{v2[0], v2[1], v2[2]});
 		f.vertices.push_back(std::vector<float>{v3[0], v3[1], v3[2]});
@@ -71,14 +73,14 @@ int main()
 	std::filesystem::path halfDonutPath = "../../../testdata/half_donut_ascii.stl";
 	std::filesystem::path binaryPath = "../../../testdata/stencil_binary.stl";
 	
-	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, ConsoleReceiver());
+	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, ConsoleHandler());
 	std::cout << "Result 1: " << uint16_t(result1) << std::endl;
 
-	SimpleReceiver mesh2;
+	MemoryMeshHandler mesh2;
 	microstl::Parser::Result result2 = microstl::Parser::parseStlFile(halfDonutPath, mesh2);
 	std::cout << "Result 2: " << uint16_t(result2) << std::endl;
 
-	SimpleReceiver mesh3;
+	MemoryMeshHandler mesh3;
 	microstl::Parser::Result result3 = microstl::Parser::parseStlFile(binaryPath, mesh3);
 	std::cout << "Result 3: " << uint16_t(result3) << std::endl;
 
