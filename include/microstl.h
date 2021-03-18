@@ -6,20 +6,27 @@
 
 namespace microstl
 {
-	class IReceiver
+	// Interface that must be implemented to receive the data from the parsed STL file.
+	class IHandler
 	{
 	public:
-		virtual ~IReceiver() {}
-		virtual void receiveName(const std::string& name) = 0;
-		virtual void receiveFace(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
+		virtual ~IHandler() {}
+		
+		// Always called when parsing a binary STL. Before onFacet() is called for the first time.
+		virtual void onTriangleCount(uint32_t triangles) {};
+
+		// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet().
+		virtual void onName(const std::string& name) {};
+
+		// Will be called for each triangle (a.k.a facet/face) in the STL file
+		virtual void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
 	};
 
 	enum class Result : uint16_t {
-		Okay = 0,
-		NotImplementedError = 2,
-		FileReadError = 3,
-		UnexpectedFileEnd = 4,
-		InvalidFile = 5,
+		Success = 0,
+		FileReadError = 1,
+		UnexpectedEnd = 2,
+		InvalidFile = 3,
 	};
 
 	bool isAsciiFormat(std::ifstream& ifs)
@@ -100,7 +107,7 @@ namespace microstl
 		return true;
 	}
 
-	Result parseAsciiStream(std::ifstream& ifs, IReceiver& receiver)
+	Result parseAsciiStream(std::ifstream& ifs, IHandler& handler)
 	{
 		// State machine variables
 		bool activeSolid = false;
@@ -125,7 +132,7 @@ namespace microstl
 				if (line.length() > 5)
 				{
 					std::string name = stringTrim(line.substr(5));
-					receiver.receiveName(name);
+					handler.onName(name);
 				}
 			}
 			if (stringStartsWith(line, "endsolid"))
@@ -151,7 +158,7 @@ namespace microstl
 				activeFacet = false;
 				facetCount++;
 				loopCount = 0;
-				receiver.receiveFace(v + 0, v + 3, v + 6, n);
+				handler.onFacet(v + 0, v + 3, v + 6, n);
 			}
 			if (stringStartsWith(line, "outer loop"))
 			{
@@ -181,50 +188,49 @@ namespace microstl
 		if (activeSolid || activeFacet || activeLoop || solidCount != 1)
 			return Result::InvalidFile;
 
-		return Result::Okay;
+		return Result::Success;
 	}
 
-	Result parseBinaryStream(std::ifstream& ifs, IReceiver& receiver)
+	Result parseBinaryStream(std::ifstream& ifs, IHandler& handler)
 	{
 		char buffer[80];
 		ifs.read(buffer, sizeof(buffer));
 		if (!ifs)
-			return Result::UnexpectedFileEnd;
+			return Result::UnexpectedEnd;
 		ifs.read(buffer, 4);
 		if (!ifs)
-			return Result::UnexpectedFileEnd;
+			return Result::UnexpectedEnd;
 		uint32_t triangles = reinterpret_cast<uint32_t*>(buffer)[0];
+		handler.onTriangleCount(triangles);
 		for (size_t t = 0; t < triangles; t++)
 		{
 			ifs.read(buffer, 50);
 			if (!ifs)
-				return Result::UnexpectedFileEnd;
+				return Result::UnexpectedEnd;
 			float n[3];
 			float v[9];
 			memcpy(n, buffer + 0, 12);
-			memcpy(v + 0, buffer + 12, 12);
-			memcpy(v + 3, buffer + 24, 12);
-			memcpy(v + 6, buffer + 36, 12);
-			receiver.receiveFace(v + 0, v + 3, v + 6, n);
+			memcpy(v, buffer + 12, 3 * 12);
+			handler.onFacet(v + 0, v + 3, v + 6, n);
 		}
 
-		return Result::Okay;
+		return Result::Success;
 	}
 
-	Result parseStlStream(std::ifstream& ifs, IReceiver& receiver)
+	Result parseStlStream(std::ifstream& ifs, IHandler& handler)
 	{
 		if (isAsciiFormat(ifs))
-			return parseAsciiStream(ifs, receiver);
+			return parseAsciiStream(ifs, handler);
 		else
-			return parseBinaryStream(ifs, receiver);
+			return parseBinaryStream(ifs, handler);
 	}
 
-	Result parseStlFile(std::filesystem::path& filePath, IReceiver& receiver)
+	Result parseStlFile(std::filesystem::path& filePath, IHandler& handler)
 	{
 		std::ifstream ifs(filePath, std::ios::binary);
 		if (!ifs.is_open())
 			return Result::FileReadError;
 
-		return parseStlStream(ifs, receiver);
+		return parseStlStream(ifs, handler);
 	};
 };

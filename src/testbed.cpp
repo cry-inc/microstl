@@ -2,14 +2,19 @@
 #include <iostream>
 #include <vector>
 
-struct ConsoleReceiver : microstl::IReceiver
+struct ConsoleReceiver : microstl::IHandler
 {
-	void receiveName(const std::string& name) override
+	void onName(const std::string& name) override
 	{
 		std::cout << "Name: " << name << std::endl;
 	}
 
-	void receiveFace(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
+	void onTriangleCount(uint32_t triangles) override
+	{
+		std::cout << "Triangles: " << triangles << std::endl;
+	}
+
+	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 	{
 		std::cout << "Face: " << v1[0] << "|" << v1[1] << "|" << v1[2] << ", "
 			<< v2[0] << "|" << v2[1] << "|" << v2[2] << ", "
@@ -18,7 +23,7 @@ struct ConsoleReceiver : microstl::IReceiver
 	}
 };
 
-struct SimpleReceiver : microstl::IReceiver
+struct SimpleReceiver : microstl::IHandler
 {
 	struct Facet
 	{
@@ -29,12 +34,12 @@ struct SimpleReceiver : microstl::IReceiver
 	std::string name;
 	std::vector<Facet> facets;
 
-	void receiveName(const std::string& name) override
+	void onName(const std::string& name) override
 	{
 		this->name = name;
 	}
 
-	void receiveFace(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
+	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 	{
 		Facet f;
 		f.normal = { n[0], n[1], n[2] };
