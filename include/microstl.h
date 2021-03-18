@@ -40,24 +40,24 @@ namespace microstl
 		ParserError = 4, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
 	};
 
-	bool isAsciiFormat(std::ifstream& ifs)
+	bool isAsciiFormat(std::istream& is)
 	{
 		char header[5] = { 0, };
-		ifs.read(header, sizeof(header));
-		ifs.seekg(0, std::ios::beg);
+		is.read(header, sizeof(header));
+		is.seekg(0, std::ios::beg);
 		return memcmp("solid", header, sizeof(header)) == 0;
 	}
 
-	bool readNextLine(std::ifstream& ifs, std::string& output)
+	bool readNextLine(std::istream& is, std::string& output)
 	{
 		output.resize(0);
-		if (!ifs.is_open() || !ifs.good() || ifs.eof())
+		if (!is.good() || is.eof())
 			return false;
 
-		while (!ifs.eof())
+		while (!is.eof())
 		{
 			char byte;
-			ifs.read(&byte, 1);
+			is.read(&byte, 1);
 			if (byte == '\n')
 				return true;
 			else
@@ -118,7 +118,7 @@ namespace microstl
 		return true;
 	}
 
-	Result parseAsciiStream(std::ifstream& ifs, IHandler& handler)
+	Result parseAsciiStream(std::istream& is, IHandler& handler)
 	{
 		handler.onAscii();
 
@@ -134,7 +134,7 @@ namespace microstl
 		while (true)
 		{
 			std::string line;
-			if (!readNextLine(ifs, line))
+			if (!readNextLine(is, line))
 				break;
 			lineNumber++;
 			line = stringTrim(line);
@@ -232,23 +232,23 @@ namespace microstl
 		return Result::Success;
 	}
 
-	Result parseBinaryStream(std::ifstream& ifs, IHandler& handler)
+	Result parseBinaryStream(std::istream& is, IHandler& handler)
 	{
 		handler.onBinary();
 
 		char buffer[80];
-		ifs.read(buffer, sizeof(buffer));
-		if (!ifs)
+		is.read(buffer, sizeof(buffer));
+		if (!is)
 			return Result::MissingDataError;
-		ifs.read(buffer, 4);
-		if (!ifs)
+		is.read(buffer, 4);
+		if (!is)
 			return Result::MissingDataError;
 		uint32_t triangles = reinterpret_cast<uint32_t*>(buffer)[0];
 		handler.onTriangleCount(triangles);
 		for (size_t t = 0; t < triangles; t++)
 		{
-			ifs.read(buffer, 50);
-			if (!ifs)
+			is.read(buffer, 50);
+			if (!is)
 				return Result::MissingDataError;
 			float n[3];
 			float v[9];
@@ -260,12 +260,12 @@ namespace microstl
 		return Result::Success;
 	}
 
-	Result parseStlStream(std::ifstream& ifs, IHandler& handler)
+	Result parseStlStream(std::istream& is, IHandler& handler)
 	{
-		if (isAsciiFormat(ifs))
-			return parseAsciiStream(ifs, handler);
+		if (isAsciiFormat(is))
+			return parseAsciiStream(is, handler);
 		else
-			return parseBinaryStream(ifs, handler);
+			return parseBinaryStream(is, handler);
 	}
 
 	Result parseStlFile(std::filesystem::path& filePath, IHandler& handler)
