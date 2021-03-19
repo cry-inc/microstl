@@ -4,6 +4,7 @@
 #include <sstream>
 #include <filesystem>
 #include <streambuf>
+#include <vector>
 
 namespace microstl
 {
@@ -371,5 +372,35 @@ namespace microstl
 				, std::istream(static_cast<std::streambuf*>(this)) {
 			}
 		};
+	};
+
+	struct Normal { float x, y, z; };
+	struct Vertex { float x, y, z; };
+	struct Facet { Vertex v1; Vertex v2; Vertex v3; Normal n; };
+	struct Mesh { std::vector<Facet> facets; };
+
+	struct MeshParserHandler : Parser::Handler
+	{
+		Mesh mesh;
+		std::string name;
+		std::vector<uint8_t> header;
+		bool ascii = false;
+		size_t errorLineNumber = 0;
+
+		void onName(const std::string& n) override { name = n; }
+		void onAscii() override { ascii = true; }
+		void onBinary() override { ascii = false; }
+		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
+		void onError(size_t line) override { errorLineNumber = line; }
+
+		void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
+		{
+			Facet facet;
+			facet.v1 = { v1[0], v1[1], v1[2] };
+			facet.v2 = { v2[0], v2[1], v2[2] };
+			facet.v3 = { v3[0], v3[1], v3[2] };
+			facet.n = { n[0], n[1], n[2] };
+			mesh.facets.push_back(std::move(facet));
+		}
 	};
 };
