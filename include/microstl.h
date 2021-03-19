@@ -92,8 +92,9 @@ namespace microstl
 		}
 
 		// Some internal safety limits
-		static const size_t ASCII_LINE_LIMIT = 512u;
-		static const uint32_t BINARY_FACET_LIMIT = 500000000u;
+		static inline const size_t ASCII_LINE_LIMIT = 512u;
+		static inline const uint32_t BINARY_FACET_LIMIT = 500000000u;
+		static inline const float NORMAL_LENGTH_DEVIATION_LIMIT = 0.001f;
 
 	private:
 		static bool isAsciiFormat(std::istream& is)
@@ -174,6 +175,25 @@ namespace microstl
 				return false;
 
 			return true;
+		}
+
+		static void calculateNormals(const float v1[3], const float v2[3], const float v3[3], float n[3])
+		{
+			float u[3] = { v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2] };
+			float v[3] = { v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2] };
+			n[0] = u[1] * v[2] - u[2] * v[1];
+			n[1] = u[2] * v[0] - u[0] * v[2];
+			n[2] = u[0] * v[1] - u[1] * v[0];
+		}
+
+		static void checkAndFixNormals(const float v1[3], const float v2[3], const float v3[3], float n[3])
+		{
+			if (n[0] == 0 && n[1] == 0 && n[2] == 0)
+				return calculateNormals(v1, v2, v3, n);
+
+			float length = sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+			if (abs(length - 1.0f) > NORMAL_LENGTH_DEVIATION_LIMIT)
+				return calculateNormals(v1, v2, v3, n);
 		}
 
 		static Result parseAsciiStream(std::istream& is, Handler& handler)
@@ -257,6 +277,7 @@ namespace microstl
 					activeFacet = false;
 					facetCount++;
 					loopCount = 0;
+					checkAndFixNormals(v + 0, v + 3, v + 6, n);
 					handler.onFacet(v + 0, v + 3, v + 6, n);
 				}
 				if (stringStartsWith(line, "outer loop"))
@@ -327,6 +348,7 @@ namespace microstl
 					return Result::MissingDataError;
 				float values[12];
 				memcpy(values, buffer, 4 * 12);
+				checkAndFixNormals(values + 3, values + 6, values + 9, values);
 				handler.onFacet(values + 3, values + 6, values + 9, values);
 				if (buffer[48] != 0 || buffer[49] != 0)
 					handler.onFacetAttribute(reinterpret_cast<const uint8_t*>(buffer + 48));
