@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <cstring>
+#include <cmath>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -57,13 +59,15 @@ namespace microstl
 		// Parse STL file directly from disk using an UTF8 or ASCII path
 		static Result parseStlFile(const char* utf8FilePath, Handler& handler)
 		{
-			return parseStlFile(std::filesystem::u8path(utf8FilePath), handler);
+			std::filesystem::path path = std::filesystem::u8path(utf8FilePath);
+			return parseStlFile(path, handler);
 		}
 
 		// Parse STL file directly from disk using an wide string path
 		static Result parseStlFile(const wchar_t* filePath, Handler& handler)
 		{
-			return parseStlFile(std::filesystem::path(filePath), handler);
+			std::filesystem::path path(filePath);
+			return parseStlFile(path, handler);
 		}
 
 		// Parse STL file directly from disk using a std::filesystem path

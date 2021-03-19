@@ -56,16 +56,17 @@ int main()
 	std::filesystem::path simplePath = "../../testdata/simple_ascii.stl";
 	std::filesystem::path halfDonutPath = "../../testdata/half_donut_ascii.stl";
 	std::filesystem::path binaryPath = "../../testdata/stencil_binary.stl";
-	
-	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, ConsoleHandler());
+
+	ConsoleHandler consoleHandler;
+	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, consoleHandler);
 	std::cout << "Result 1: " << uint16_t(result1) << std::endl;
 
-	microstl::MeshParserHandler mesh2;
-	microstl::Parser::Result result2 = microstl::Parser::parseStlFile(halfDonutPath, mesh2);
+	microstl::MeshParserHandler meshHandler1;
+	microstl::Parser::Result result2 = microstl::Parser::parseStlFile(halfDonutPath, meshHandler1);
 	std::cout << "Result 2: " << uint16_t(result2) << std::endl;
 
-	microstl::MeshParserHandler mesh3;
-	microstl::Parser::Result result3 = microstl::Parser::parseStlFile(binaryPath, mesh3);
+	microstl::MeshParserHandler meshHandler2;
+	microstl::Parser::Result result3 = microstl::Parser::parseStlFile(binaryPath, meshHandler2);
 	std::cout << "Result 3: " << uint16_t(result3) << std::endl;
 
 	return 0;
