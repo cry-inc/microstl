@@ -16,3 +16,18 @@ jobs:
     - name: Run Test
       working-directory: ${{github.workspace}}/build
       run: ctest
+  build-and-test-windows-vs:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create Build Folder
+      run: cmake -E make_directory ${{github.workspace}}/build
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/build
+      run: cmake ${{github.workspace}}
+    - name: CMake Build
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build .
+    - name: Run Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest
