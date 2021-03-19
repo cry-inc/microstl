@@ -17,23 +17,29 @@ namespace microstl
 			virtual ~Handler() {}
 
 			// Called when the parser is using ASCII mode before any other methods.
-			virtual void onAscii() {};
+			virtual void onAscii() {}
 
 			// Called when the parser is using binary mode before any other methods.
-			virtual void onBinary() {};
+			virtual void onBinary() {}
+
+			// Called with the header bytes of a binary STL file after onBinary().
+			virtual void onBinaryHeader(const uint8_t header[80]) {}
 
 			// Always called when parsing a binary STL. Before onFacet() is called for the first time.
-			virtual void onFacetCount(uint32_t triangles) {};
+			virtual void onFacetCount(uint32_t triangles) {}
 
 			// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet().
-			virtual void onName(const std::string& name) {};
+			virtual void onName(const std::string& name) {}
 
 			// Might be called in ASCII mode when an error is detected to signal the line number of the problem.
 			// Do not rely on this method to be called when an error occurs, its fully optional!
-			virtual void onError(size_t lineNumber) {};
+			virtual void onError(size_t lineNumber) {}
 
-			// Will be called for each triangle (a.k.a facet/face) in the STL file
+			// Will be called for each triangle (a.k.a facet/face) in the STL file. Mandatory.
 			virtual void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
+
+			// Can be called for non-zero attribute values of facets in binary STL files after onFacet().
+			virtual void onFacetAttribute(const uint8_t attribute[2]) {}
 		};
 
 		enum class Result : uint16_t {
@@ -296,6 +302,7 @@ namespace microstl
 			is.read(buffer, sizeof(buffer));
 			if (!is)
 				return Result::MissingDataError;
+			handler.onBinaryHeader(reinterpret_cast<const uint8_t*>(buffer));
 			is.read(buffer, 4);
 			if (!is)
 				return Result::MissingDataError;
@@ -313,6 +320,8 @@ namespace microstl
 				float values[12];
 				memcpy(values, buffer, 4 * 12);
 				handler.onFacet(values + 3, values + 6, values + 9, values);
+				if (buffer[48] != 0 || buffer[49] != 0)
+					handler.onFacetAttribute(reinterpret_cast<const uint8_t*>(buffer + 48));
 			}
 
 			return Result::Success;

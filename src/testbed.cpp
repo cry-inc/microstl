@@ -14,6 +14,14 @@ struct ConsoleHandler : microstl::Parser::Handler
 		std::cout << "Binary mode enabled!" << std::endl;
 	}
 
+	void onBinaryHeader(const uint8_t header[80]) override
+	{
+		std::cout << "Header: ";
+		for (size_t i = 0; i < 80; i++)
+			std::cout << int(header[i]) << ' ';
+		std::cout << std::endl;
+	}
+
 	void onName(const std::string& name) override
 	{
 		std::cout << "Name: " << name << std::endl;
@@ -35,6 +43,11 @@ struct ConsoleHandler : microstl::Parser::Handler
 			<< v1[0] << "|" << v1[1] << "|" << v1[2] << ", "
 			<< v2[0] << "|" << v2[1] << "|" << v2[2] << ", "
 			<< v3[0] << "|" << v3[1] << "|" << v3[2] << std::endl;
+	}
+
+	void onFacetAttribute(const uint8_t attribute[2]) override
+	{
+		std::cout << "Attribute: " << int(attribute[0]) << ' ' << int(attribute[1]) << std::endl;
 	}
 };
 
