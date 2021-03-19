@@ -1,36 +1,53 @@
 #include <microstl.h>
 
-struct DummyHandler : microstl::Parser::Handler
-{
-	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override {}
-};
+#define REQUIRE(x) {if (!(x)) throw std::exception(); }
 
 int main()
 {
-	DummyHandler dummyHandler;
-
 	{
-		auto res = microstl::Parser::parseStlFile("../../testdata/simple_ascii.stl", dummyHandler);
-		if (res != microstl::Parser::Result::Success)
-			return 1;
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile("../../testdata/simple_ascii.stl", handler);
+		REQUIRE(res == microstl::Parser::Result::Success);
+		REQUIRE(handler.name == "name");
+		REQUIRE(handler.ascii);
+		REQUIRE(handler.errorLineNumber == 0);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.size() == 2);
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../testdata/half_donut_ascii.stl", dummyHandler);
-		if (res != microstl::Parser::Result::Success)
-			return 2;
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile("../../testdata/half_donut_ascii.stl", handler);
+		REQUIRE(res == microstl::Parser::Result::Success);
+		REQUIRE(handler.name == "Half Donut");
+		REQUIRE(handler.ascii);
+		REQUIRE(handler.errorLineNumber == 0);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.size() == 288);
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../testdata/stencil_binary.stl", dummyHandler);
-		if (res != microstl::Parser::Result::Success)
-			return 3;
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile("../../testdata/stencil_binary.stl", handler);
+		REQUIRE(res == microstl::Parser::Result::Success);
+		REQUIRE(handler.name.empty());
+		REQUIRE(!handler.ascii);
+		REQUIRE(handler.errorLineNumber == 0);
+		REQUIRE(handler.header.size() == 80);
+		for (size_t i = 0; i < 80; i++)
+			REQUIRE(handler.header[i] == 0);
+		REQUIRE(handler.mesh.facets.size() == 2330);
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../testdata/empty_file.stl", dummyHandler);
-		if (res != microstl::Parser::Result::MissingDataError)
-			return 4;
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile("../../testdata/empty_file.stl", handler);
+		REQUIRE(res == microstl::Parser::Result::MissingDataError);
+		REQUIRE(handler.name.empty());
+		REQUIRE(!handler.ascii);
+		REQUIRE(handler.errorLineNumber == 0);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.empty());
 	}
 
 	return 0;
