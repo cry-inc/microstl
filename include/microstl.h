@@ -197,7 +197,7 @@ namespace microstl
 				return calculateNormals(v1, v2, v3, n);
 
 			float length = sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-			if (abs(length - 1.0f) > NORMAL_LENGTH_DEVIATION_LIMIT)
+			if (fabs(length - 1.0f) > NORMAL_LENGTH_DEVIATION_LIMIT)
 				return calculateNormals(v1, v2, v3, n);
 		}
 
