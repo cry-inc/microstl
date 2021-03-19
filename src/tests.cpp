@@ -8,11 +8,23 @@ int main()
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile("../../testdata/simple_ascii.stl", handler);
 		REQUIRE(res == microstl::Parser::Result::Success);
-		REQUIRE(handler.name == "name");
+		REQUIRE(handler.name == "minimal");
 		REQUIRE(handler.ascii);
 		REQUIRE(handler.errorLineNumber == 0);
 		REQUIRE(handler.header.empty());
-		REQUIRE(handler.mesh.facets.size() == 2);
+		REQUIRE(handler.mesh.facets.size() == 1);
+		REQUIRE(handler.mesh.facets[0].n.x == -1);
+		REQUIRE(handler.mesh.facets[0].n.y == 0);
+		REQUIRE(handler.mesh.facets[0].n.z == 0);
+		REQUIRE(handler.mesh.facets[0].v1.x == 0);
+		REQUIRE(handler.mesh.facets[0].v1.y == 0);
+		REQUIRE(handler.mesh.facets[0].v1.z == 0);
+		REQUIRE(handler.mesh.facets[0].v2.x == 0);
+		REQUIRE(handler.mesh.facets[0].v2.y == 0);
+		REQUIRE(handler.mesh.facets[0].v2.z == 1);
+		REQUIRE(handler.mesh.facets[0].v3.x == 0);
+		REQUIRE(handler.mesh.facets[0].v3.y == 1);
+		REQUIRE(handler.mesh.facets[0].v3.z == 1);
 	}
 
 	{
