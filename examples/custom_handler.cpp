@@ -1,8 +1,8 @@
 #include <microstl.h>
-#include <iostream>
-#include <vector>
 
-struct ConsoleHandler : microstl::Parser::Handler
+#include <iostream>
+
+struct CustomHandler : microstl::Parser::Handler
 {
 	void onAscii() override
 	{
@@ -53,21 +53,19 @@ struct ConsoleHandler : microstl::Parser::Handler
 
 int main()
 {
-	std::filesystem::path simplePath = "../../testdata/simple_ascii.stl";
-	std::filesystem::path halfDonutPath = "../../testdata/half_donut_ascii.stl";
-	std::filesystem::path binaryPath = "../../testdata/stencil_binary.stl";
+	/// Create an instance of the custom handler that will receive the STL data
+	CustomHandler handler;
 
-	ConsoleHandler consoleHandler;
-	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, consoleHandler);
-	std::cout << "Result 1: " << uint16_t(result1) << std::endl;
-
-	microstl::MeshParserHandler meshHandler1;
-	microstl::Parser::Result result2 = microstl::Parser::parseStlFile(halfDonutPath, meshHandler1);
-	std::cout << "Result 2: " << uint16_t(result2) << std::endl;
-
-	microstl::MeshParserHandler meshHandler2;
-	microstl::Parser::Result result3 = microstl::Parser::parseStlFile(binaryPath, meshHandler2);
-	std::cout << "Result 3: " << uint16_t(result3) << std::endl;
+	// Parse STL file with the custom handler as receiver
+	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
+	microstl::Parser::Result result = microstl::Parser::parseStlFile(filePath, handler);
+	
+	// Error handling
+	if (result != microstl::Parser::Result::Success)
+	{
+		std::cout << "Error: " << uint16_t(result) << std::endl;
+		return 1;
+	}
 
 	return 0;
 }
