@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <streambuf>
 
 namespace microstl
 {
@@ -81,6 +82,13 @@ namespace microstl
 				return parseAsciiStream(is, handler);
 			else
 				return parseBinaryStream(is, handler);
+		}
+
+		// Parse STL file from a memory buffer
+		static Result parseStlStream(const char* buffer, size_t bufferSize, Handler& handler)
+		{
+			imemstream ims(buffer, bufferSize);
+			return parseStlStream(ims, handler);
 		}
 
 		// Some internal safety limits
@@ -326,5 +334,20 @@ namespace microstl
 
 			return Result::Success;
 		}
+
+		// Private helpers to convert a memory buffer into a seekable istream
+		// See source here: https://stackoverflow.com/a/13059195
+		struct membuf : std::streambuf {
+			membuf(char const* base, size_t size) {
+				char* p(const_cast<char*>(base));
+				this->setg(p, p, p + size);
+			}
+		};
+		struct imemstream : virtual membuf, std::istream {
+			imemstream(char const* base, size_t size)
+				: membuf(base, size)
+				, std::istream(static_cast<std::streambuf*>(this)) {
+			}
+		};
 	};
 };
