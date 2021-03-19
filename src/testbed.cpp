@@ -19,7 +19,7 @@ struct ConsoleHandler : microstl::Parser::Handler
 		std::cout << "Name: " << name << std::endl;
 	}
 
-	void onTriangleCount(uint32_t triangles) override
+	void onFacetCount(uint32_t triangles) override
 	{
 		std::cout << "Triangles: " << triangles << std::endl;
 	}

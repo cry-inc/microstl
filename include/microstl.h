@@ -23,7 +23,7 @@ namespace microstl
 			virtual void onBinary() {};
 
 			// Always called when parsing a binary STL. Before onFacet() is called for the first time.
-			virtual void onTriangleCount(uint32_t triangles) {};
+			virtual void onFacetCount(uint32_t triangles) {};
 
 			// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet().
 			virtual void onName(const std::string& name) {};
@@ -38,10 +38,12 @@ namespace microstl
 
 		enum class Result : uint16_t {
 			Success = 0, // Everything went smooth, the STL file was parsed without issues
-			FileError = 1, // Unable to read the specified STL file
+			FileError = 1, // Unable to read the specified STL file path
 			MissingDataError = 2, // STL data ended unexpectely and is incomplete or otherwise broken
 			UnexpectedError = 3, // Found an unexpected keyword or token in an ASCII STL file
 			ParserError = 4, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
+			LineLimitError = 5, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
+			FacetCountError = 6, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
 		};
 
 		// Parse STL file directly from disk using an UTF8 or ASCII path
@@ -75,6 +77,10 @@ namespace microstl
 				return parseBinaryStream(is, handler);
 		}
 
+		// Some internal safety limits
+		static const size_t ASCII_LINE_LIMIT = 512u;
+		static const uint32_t BINARY_FACET_LIMIT = 500000000u;
+
 	private:
 		static bool isAsciiFormat(std::istream& is)
 		{
@@ -87,7 +93,7 @@ namespace microstl
 		static bool readNextLine(std::istream& is, std::string& output)
 		{
 			output.resize(0);
-			if (!is.good() || is.eof())
+			if (!is)
 				return false;
 
 			while (!is.eof())
@@ -96,6 +102,8 @@ namespace microstl
 				is.read(&byte, 1);
 				if (byte == '\n')
 					return true;
+				else if (output.size() > ASCII_LINE_LIMIT)
+					return false;
 				else
 					output.push_back(byte);
 			}
@@ -169,10 +177,22 @@ namespace microstl
 			// Line parse with loop to work the state machine
 			while (true)
 			{
+				lineNumber++;
 				std::string line;
 				if (!readNextLine(is, line))
-					break;
-				lineNumber++;
+				{
+					if (is)
+					{
+						// input stream still good -> hit the line limit
+						handler.onError(lineNumber);
+						return Result::LineLimitError;
+					}
+					else
+					{
+						// input stream ended, no more lines!
+						break;
+					}
+				}
 				line = stringTrim(line);
 				if (stringStartsWith(line, "solid"))
 				{
@@ -279,18 +299,20 @@ namespace microstl
 			is.read(buffer, 4);
 			if (!is)
 				return Result::MissingDataError;
-			uint32_t triangles = reinterpret_cast<uint32_t*>(buffer)[0];
-			handler.onTriangleCount(triangles);
-			for (size_t t = 0; t < triangles; t++)
+			uint32_t facetCount = reinterpret_cast<uint32_t*>(buffer)[0];
+			if (facetCount == 0)
+				return Result::MissingDataError;
+			if (facetCount > BINARY_FACET_LIMIT)
+				return Result::FacetCountError;
+			handler.onFacetCount(facetCount);
+			for (size_t t = 0; t < facetCount; t++)
 			{
 				is.read(buffer, 50);
 				if (!is)
 					return Result::MissingDataError;
-				float n[3];
-				float v[9];
-				memcpy(n, buffer + 0, 12);
-				memcpy(v, buffer + 12, 3 * 12);
-				handler.onFacet(v + 0, v + 3, v + 6, n);
+				float values[12];
+				memcpy(values, buffer, 4 * 12);
+				handler.onFacet(values + 3, values + 6, values + 9, values);
 			}
 
 			return Result::Success;
