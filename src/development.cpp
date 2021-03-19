@@ -82,9 +82,9 @@ struct MemoryMeshHandler : microstl::Parser::Handler
 
 int main()
 {
-	std::filesystem::path simplePath = "../../../testdata/simple_ascii.stl";
-	std::filesystem::path halfDonutPath = "../../../testdata/half_donut_ascii.stl";
-	std::filesystem::path binaryPath = "../../../testdata/stencil_binary.stl";
+	std::filesystem::path simplePath = "../../testdata/simple_ascii.stl";
+	std::filesystem::path halfDonutPath = "../../testdata/half_donut_ascii.stl";
+	std::filesystem::path binaryPath = "../../testdata/stencil_binary.stl";
 	
 	microstl::Parser::Result result1 = microstl::Parser::parseStlFile(simplePath, ConsoleHandler());
 	std::cout << "Result 1: " << uint16_t(result1) << std::endl;

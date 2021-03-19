@@ -10,25 +10,25 @@ int main()
 	DummyHandler dummyHandler;
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../../testdata/simple_ascii.stl", dummyHandler);
+		auto res = microstl::Parser::parseStlFile("../../testdata/simple_ascii.stl", dummyHandler);
 		if (res != microstl::Parser::Result::Success)
 			return 1;
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../../testdata/half_donut_ascii.stl", dummyHandler);
+		auto res = microstl::Parser::parseStlFile("../../testdata/half_donut_ascii.stl", dummyHandler);
 		if (res != microstl::Parser::Result::Success)
 			return 2;
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../../testdata/stencil_binary.stl", dummyHandler);
+		auto res = microstl::Parser::parseStlFile("../../testdata/stencil_binary.stl", dummyHandler);
 		if (res != microstl::Parser::Result::Success)
 			return 3;
 	}
 
 	{
-		auto res = microstl::Parser::parseStlFile("../../../testdata/empty_file.stl", dummyHandler);
+		auto res = microstl::Parser::parseStlFile("../../testdata/empty_file.stl", dummyHandler);
 		if (res != microstl::Parser::Result::MissingDataError)
 			return 4;
 	}
