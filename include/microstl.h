@@ -71,7 +71,7 @@ namespace microstl
 		}
 
 		// Parse STL file directly from disk using a std::filesystem path
-		static Result parseStlFile(std::filesystem::path& filePath, Handler& handler)
+		static Result parseStlFile(const std::filesystem::path& filePath, Handler& handler)
 		{
 			std::ifstream ifs(filePath, std::ios::binary);
 			if (!ifs)
