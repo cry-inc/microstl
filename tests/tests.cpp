@@ -1,5 +1,6 @@
 #include <microstl.h>
 
+#define TEST_SCOPE(x)
 #define REQUIRE(x) {if (!(x)) throw std::exception(); }
 
 std::filesystem::path findTestFile(const char* fileName)
@@ -24,6 +25,7 @@ std::filesystem::path findTestFile(const char* fileName)
 int main()
 {
 	{
+		TEST_SCOPE("Parse minimal ASCII STL file and check all results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("simple_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -47,6 +49,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse ASCII STL file with creative white spaces and check all results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("crazy_whitespace_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -70,6 +73,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse small ASCII STL file and do a simple check on the results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("half_donut_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -81,6 +85,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse binary STL file and do a simple check on the results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("stencil_binary.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -94,6 +99,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse binary STL file from FreeCAD and do some checks on the results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("box_freecad_binary.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -117,6 +123,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse ASCII STL file from MeshLab and do some checks on the results");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
@@ -140,6 +147,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing file paths supplied as UTF8 string");
 		auto filePath = findTestFile("simple_ascii.stl");
 		auto utf8String = filePath.u8string();
 		microstl::MeshParserHandler handler;
@@ -149,6 +157,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing file paths supplied as wide string");
 		auto filePath = findTestFile("simple_ascii.stl");
 		auto wideString = filePath.wstring();
 		microstl::MeshParserHandler handler;
@@ -158,6 +167,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing STL data supplied as memory buffer");
 		std::ifstream ifs(findTestFile("simple_ascii.stl"), std::ios::binary | std::ios::ate);
 		std::streamsize size = ifs.tellg();
 		ifs.seekg(0, std::ios::beg);
@@ -172,6 +182,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing STL data supplied as std::istream");
 		std::ifstream ifs(findTestFile("simple_ascii.stl"), std::ios::binary);
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlStream(ifs, handler);
@@ -180,6 +191,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing an empty file and check for correct error");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("empty_file.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::MissingDataError);
@@ -191,6 +203,7 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing an non-existing file and check for correct error");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile("does_not_exist.stl", handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::FileError);
