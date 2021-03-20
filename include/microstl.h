@@ -18,7 +18,7 @@ namespace microstl
 	enum class Result : uint16_t {
 		Undefined = 0, // Will be never returned by the parser and can be used the to indicate preding or empty results
 		Success = 1, // Everything went smooth, the STL file was parsed without issues
-		FileError = 2, // Unable to read the specified STL file path
+		FileError = 2, // Unable to read or write the specified file path
 		MissingDataError = 3, // STL data ended unexpectely and is incomplete or otherwise broken
 		UnexpectedError = 4, // Found an unexpected keyword or token in an ASCII STL file
 		ParserError = 5, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
@@ -31,35 +31,35 @@ namespace microstl
 	class Parser
 	{
 	public:
-		// Interface that must be implemented to receive the data from the parsed STL file.
+		// Interface that must be implemented to receive the data from the parsed STL file
 		class Handler
 		{
 		public:
 			virtual ~Handler() {}
 
-			// Called when the parsing is started before any other methods.
+			// Called when the parsing is started before any other methods
 			virtual void onBegin(bool asciiMode) {}
 
-			// Called with the header bytes of a binary STL file after onBinary().
+			// Called with the header bytes of a binary STL file after onBinary()
 			virtual void onBinaryHeader(const uint8_t header[80]) {}
 
-			// Always called when parsing a binary STL. Before onFacet() is called for the first time.
+			// Always called when parsing a binary STL. Before onFacet() is called for the first time
 			virtual void onFacetCount(uint32_t triangles) {}
 
-			// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet().
+			// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet()
 			virtual void onName(const std::string& name) {}
 
-			// Might be called in ASCII mode when an error is detected to signal the line number of the problem.
+			// Might be called in ASCII mode when an error is detected to signal the line number of the problem
 			// Do not rely on this method to be called when an error occurs, its fully optional!
 			virtual void onError(size_t lineNumber) {}
 
-			// Will be called for each triangle (a.k.a facet/face) in the STL file. Mandatory.
+			// Will be called for each triangle (a.k.a facet/face) in the STL file
 			virtual void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) = 0;
 
-			// Can be called for non-zero attribute values of facets in binary STL files after onFacet().
-			virtual void onFacetAttribute(const uint8_t attribute[2]) {}
+			// Can be called for non-zero attribute values of facets in binary STL files after onFacet()
+			virtual void onFacetAttributes(const uint8_t attributes[2]) {}
 
-			// Called when the parsing process finishes after all other methods.
+			// Called when the parsing process finishes after all other methods
 			virtual void onEnd(Result result) {}
 		};
 
@@ -375,7 +375,7 @@ namespace microstl
 				checkAndFixNormals(values + 3, values + 6, values + 9, values);
 				handler.onFacet(values + 3, values + 6, values + 9, values);
 				if (buffer[48] != 0 || buffer[49] != 0)
-					handler.onFacetAttribute(reinterpret_cast<const uint8_t*>(buffer + 48));
+					handler.onFacetAttributes(reinterpret_cast<const uint8_t*>(buffer + 48));
 			}
 
 			return Result::Success;
@@ -406,6 +406,166 @@ namespace microstl
 				return gptr() - eback();
 			}
 		};
+	};
+
+	class Writer
+	{
+	public:
+		// Provider that must be implemented configure options and provide data when writing STL files
+		class Provider
+		{
+		public:
+			virtual ~Provider() {}
+
+			// Return true to write an ASCII file, return false to write a binary file
+			virtual bool asciiMode() { return false; }
+
+			// Can be used to supply an name for ASCII STL files
+			virtual std::string getName() { return libraryName; }
+
+			// Can be used to provide a custom 80 byte header for binary STL files
+			// The array header is an output parameter.
+			virtual void getHeader(uint8_t header[80]) { memset(header, 0, 80); memcpy(header, libraryName, strlen(libraryName)); }
+
+			// Return true to write nulled out normals, return false write existing normal data
+			virtual bool nullifyNormals() { return false; }
+
+			// Return true if you want to write custom attribute values in binary STL files using getFacetAttributes()
+			virtual bool writeAttributes() { return false; }
+
+			// Must return the number of facets/triangles that will go into the STL file
+			// Will be called once before the first getFacet() call
+			virtual size_t getFacetCount() = 0;
+
+			// Will be called once for each facet/triangle with its corresponding zero based index
+			// The arrays v1, v2, v3 and n are output parameters
+			virtual void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) = 0;
+
+			/// Will be called once for each facet/triangle after getFacet() if writeAttributes() is true
+			// The array attributes is an output parameter
+			virtual void getFacetAttributes(size_t index, uint8_t attributes[2]) { memset(attributes, 0, 2); }
+		};
+
+		// Write STL file directly to disk using an UTF8 or ASCII path
+		static Result writeStlFile(const char* utf8FilePath, Provider& provider)
+		{
+			std::filesystem::path path = std::filesystem::u8path(utf8FilePath);
+			return writeStlFile(path, provider);
+		}
+
+		// Write STL file directly to disk using an wide string path
+		static Result writeStlFile(const wchar_t* filePath, Provider& provider)
+		{
+			std::filesystem::path path(filePath);
+			return writeStlFile(path, provider);
+		}
+
+		// Write STL file directly to disk using a std::filesystem path
+		static Result writeStlFile(const std::filesystem::path& filePath, Provider& provider)
+		{
+			std::ofstream ofs(filePath, std::ios::binary);
+			if (!ofs)
+				return Result::FileError;
+			else
+				return writeStlStream(ofs, provider);
+		};
+
+		// Write STL file data to a memory buffer
+		static Result writeStlBuffer(std::vector<uint8_t>& buffer, Provider& provider)
+		{
+			std::stringstream ss;
+			Result result = writeStlStream(ss, provider);
+			std::string str = ss.str();
+			buffer.resize(str.size());
+			memcpy(buffer.data(), str.data(), str.size());
+			return result;
+		}
+
+		// Parse STL file from a std::istream source
+		static Result writeStlStream(std::ostream& os, Provider& provider)
+		{
+			bool asciiMode = provider.asciiMode();
+			Result result = asciiMode ? writeAsciiStream(os, provider) : writeBinaryStream(os, provider);
+			return result;
+		}
+
+	private:
+		static inline const char* libraryName = "microstl";
+
+		static bool isLittleEndian()
+		{
+			int16_t number = 1;
+			const char* ptr = reinterpret_cast<const char*>(&number);
+			return ptr[0] == 1;
+		}
+
+		static Result writeAsciiStream(std::ostream& os, Provider& provider)
+		{
+			os << "solid";
+			std::string name = provider.getName();
+			if (!name.empty())
+				os << " " << name;
+			os << "\n";
+
+			size_t facetCount = provider.getFacetCount();
+			bool nullifyNormals = provider.nullifyNormals();
+			for (size_t i = 0; i < facetCount; ++i)
+			{
+				float n[3] = { 0, };
+				float v[9] = { 0, };
+				provider.getFacet(i, v + 0, v + 3, v + 6, n);
+				if (nullifyNormals)
+					os << "  facet normal 0 0 0\n";
+				else
+					os << "  facet normal " << n[0] << " " << n[1] << " " << n[2] << "\n";
+				os << "    outer loop\n";
+				os << "      vertex " << v[0] << " " << v[1] << " " << v[2] << "\n";
+				os << "      vertex " << v[3] << " " << v[4] << " " << v[5] << "\n";
+				os << "      vertex " << v[6] << " " << v[7] << " " << v[8] << "\n";
+				os << "    endloop\n";
+				os << "  endfacet\n";
+			}
+			os << "endsolid\n";
+			return Result::Success;
+		}
+
+		static Result writeBinaryStream(std::ostream& os, Provider& provider)
+		{
+			if (!isLittleEndian())
+				return Result::EndianError;
+
+			uint8_t buffer[80];
+			provider.getHeader(buffer);
+			os.write(reinterpret_cast<const char*>(buffer), sizeof(buffer));
+
+			size_t facetCount = provider.getFacetCount();
+			uint32_t tmp = static_cast<uint32_t>(facetCount);
+			os.write(reinterpret_cast<const char*>(&tmp), 4);
+
+			float nullNormals[3] = { 0 ,0,0 };
+			bool nullifyNormals = provider.nullifyNormals();
+
+			bool writeAttributes = provider.writeAttributes();
+
+			for (size_t i = 0; i < facetCount; ++i)
+			{
+				float n[3] = { 0, };
+				float v[9] = { 0, };
+				provider.getFacet(i, v + 0, v + 3, v + 6, n);
+				if (nullifyNormals)
+					os.write(reinterpret_cast<const char*>(nullNormals), 3 * sizeof(float));
+				else
+					os.write(reinterpret_cast<const char*>(n), 3 * sizeof(float));
+				os.write(reinterpret_cast<const char*>(v), 9 * sizeof(float));
+
+				uint8_t a[2] = { 0, 0 };
+				if (writeAttributes)
+					provider.getFacetAttributes(i, a);
+				os.write(reinterpret_cast<const char*>(a), 2);
+			}
+
+			return Result::Success;
+		}
 	};
 
 	// Converts the result enum values to readable strings
@@ -489,6 +649,42 @@ namespace microstl
 			facet.v3 = { v3[0], v3[1], v3[2] };
 			facet.n = { n[0], n[1], n[2] };
 			mesh.facets.push_back(std::move(facet));
+		}
+	};
+
+	// The mesh provider can be used to write a mesh using the writer
+	struct MeshProvider : microstl::Writer::Provider
+	{
+		const microstl::Mesh& mesh;
+
+		MeshProvider(const microstl::Mesh& m) : mesh(m) {}
+		size_t getFacetCount() override { return mesh.facets.size(); }
+
+		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
+		{
+			const auto& facet = mesh.facets[index];
+			v1[0] = facet.v1.x; v1[1] = facet.v1.y; v1[2] = facet.v1.z;
+			v2[0] = facet.v2.x; v2[1] = facet.v2.y; v2[2] = facet.v2.z;
+			v3[0] = facet.v3.x; v3[1] = facet.v3.y; v3[2] = facet.v3.z;
+			n[0] = facet.n.x; n[1] = facet.n.y; n[2] = facet.n.z;
+		}
+	};
+
+	// The FV mesh provider can be used to write face-vertex meshes using the writer
+	struct FVMeshProvider : microstl::Writer::Provider
+	{
+		const microstl::FVMesh& mesh;
+
+		FVMeshProvider(const microstl::FVMesh& m) : mesh(m) {}
+		size_t getFacetCount() override { return mesh.facets.size(); }
+
+		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
+		{
+			const auto& facet = mesh.facets[index];
+			v1[0] = mesh.vertices[facet.v1].x; v1[1] = mesh.vertices[facet.v1].y; v1[2] = mesh.vertices[facet.v1].z;
+			v2[0] = mesh.vertices[facet.v2].x; v2[1] = mesh.vertices[facet.v2].y; v2[2] = mesh.vertices[facet.v2].z;
+			v3[0] = mesh.vertices[facet.v3].x; v3[1] = mesh.vertices[facet.v3].y; v3[2] = mesh.vertices[facet.v3].z;
+			n[0] = facet.n.x; n[1] = facet.n.y; n[2] = facet.n.z;
 		}
 	};
 

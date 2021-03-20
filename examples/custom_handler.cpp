@@ -40,9 +40,9 @@ struct CustomHandler : microstl::Parser::Handler
 			<< v3[0] << "|" << v3[1] << "|" << v3[2] << std::endl;
 	}
 
-	void onFacetAttribute(const uint8_t attribute[2]) override
+	void onFacetAttributes(const uint8_t attribute[2]) override
 	{
-		std::cout << "Attribute: " << int(attribute[0]) << ' ' << int(attribute[1]) << std::endl;
+		std::cout << "Attributes: " << int(attribute[0]) << ' ' << int(attribute[1]) << std::endl;
 	}
 
 	void onEnd(microstl::Result result) override
