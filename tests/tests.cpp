@@ -1,15 +1,15 @@
-#include <microstl.h>
+﻿#include <microstl.h>
 
 #define TEST_SCOPE(x)
 #define REQUIRE(x) {if (!(x)) throw std::exception(); }
 
-std::filesystem::path findTestFile(const char* fileName)
+std::filesystem::path findTestFile(std::string fileName)
 {
 	auto dir = std::filesystem::current_path();
 	dir = std::filesystem::absolute(dir);
 	while (std::filesystem::exists(dir))
 	{
-		auto filePath = dir / "testdata" / fileName;
+		auto filePath = dir / "testdata" / std::filesystem::u8path(fileName);
 		if (std::filesystem::exists(filePath))
 			return filePath;
 
@@ -148,7 +148,7 @@ int main()
 
 	{
 		TEST_SCOPE("Test parsing file paths supplied as UTF8 string");
-		auto filePath = findTestFile("simple_ascii.stl");
+		auto filePath = findTestFile(u8"简化字.stl");
 		auto utf8String = filePath.u8string();
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(utf8String.c_str(), handler);
@@ -158,7 +158,7 @@ int main()
 
 	{
 		TEST_SCOPE("Test parsing file paths supplied as wide string");
-		auto filePath = findTestFile("simple_ascii.stl");
+		auto filePath = findTestFile(u8"简化字.stl");
 		auto wideString = filePath.wstring();
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(wideString.c_str(), handler);
