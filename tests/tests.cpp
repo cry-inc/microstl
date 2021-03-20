@@ -156,6 +156,7 @@ int main()
 		REQUIRE(handler.mesh.facets.size() == 1);
 	}
 
+	#ifdef _WIN32 // Wide strings are only common on Windows
 	{
 		TEST_SCOPE("Test parsing file paths supplied as wide string");
 		auto filePath = findTestFile(u8"简化字.stl");
@@ -165,6 +166,7 @@ int main()
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
 		REQUIRE(handler.mesh.facets.size() == 1);
 	}
+	#endif
 
 	{
 		TEST_SCOPE("Test parsing STL data supplied as memory buffer");
