@@ -4,14 +4,9 @@
 
 struct CustomHandler : microstl::Parser::Handler
 {
-	void onAscii() override
+	void onBegin(bool asciiMode) override
 	{
-		std::cout << "ASCII mode enabled!" << std::endl;
-	}
-
-	void onBinary() override
-	{
-		std::cout << "Binary mode enabled!" << std::endl;
+		std::cout << "Begin parsing with " << (asciiMode ? "ASCII" : "binary") << " mode" << std::endl;
 	}
 
 	void onBinaryHeader(const uint8_t header[80]) override
@@ -48,6 +43,11 @@ struct CustomHandler : microstl::Parser::Handler
 	void onFacetAttribute(const uint8_t attribute[2]) override
 	{
 		std::cout << "Attribute: " << int(attribute[0]) << ' ' << int(attribute[1]) << std::endl;
+	}
+
+	void onEnd(microstl::Parser::Result result) override
+	{
+		std::cout << "Finished parsing with return value " << static_cast<uint16_t>(result) << std::endl;
 	}
 };
 

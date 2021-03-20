@@ -14,17 +14,26 @@ namespace microstl
 	{
 	public:
 
+		// Possible parser return values
+		enum class Result : uint16_t {
+			Undefined = 0, // Will be never returned by the parser and can be used the to indicate preding or empty results
+			Success = 1, // Everything went smooth, the STL file was parsed without issues
+			FileError = 2, // Unable to read the specified STL file path
+			MissingDataError = 3, // STL data ended unexpectely and is incomplete or otherwise broken
+			UnexpectedError = 4, // Found an unexpected keyword or token in an ASCII STL file
+			ParserError = 5, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
+			LineLimitError = 6, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
+			FacetCountError = 7, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
+		};
+
 		// Interface that must be implemented to receive the data from the parsed STL file.
 		class Handler
 		{
 		public:
 			virtual ~Handler() {}
 
-			// Called when the parser is using ASCII mode before any other methods.
-			virtual void onAscii() {}
-
-			// Called when the parser is using binary mode before any other methods.
-			virtual void onBinary() {}
+			// Called when the parsing is started before any other methods.
+			virtual void onBegin(bool asciiMode) {}
 
 			// Called with the header bytes of a binary STL file after onBinary().
 			virtual void onBinaryHeader(const uint8_t header[80]) {}
@@ -44,16 +53,9 @@ namespace microstl
 
 			// Can be called for non-zero attribute values of facets in binary STL files after onFacet().
 			virtual void onFacetAttribute(const uint8_t attribute[2]) {}
-		};
 
-		enum class Result : uint16_t {
-			Success = 0, // Everything went smooth, the STL file was parsed without issues
-			FileError = 1, // Unable to read the specified STL file path
-			MissingDataError = 2, // STL data ended unexpectely and is incomplete or otherwise broken
-			UnexpectedError = 3, // Found an unexpected keyword or token in an ASCII STL file
-			ParserError = 4, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
-			LineLimitError = 5, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
-			FacetCountError = 6, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
+			// Called when the parsing process finishes after all other methods.
+			virtual void onEnd(Result result) {}
 		};
 
 		// Parse STL file directly from disk using an UTF8 or ASCII path
@@ -70,12 +72,24 @@ namespace microstl
 			return parseStlFile(path, handler);
 		}
 
+		// Parse STL file from a memory buffer
+		static Result parseStlStream(const char* buffer, size_t bufferSize, Handler& handler)
+		{
+			imemstream ims(buffer, bufferSize);
+			return parseStlStream(ims, handler);
+		}
+
 		// Parse STL file directly from disk using a std::filesystem path
 		static Result parseStlFile(const std::filesystem::path& filePath, Handler& handler)
 		{
 			std::ifstream ifs(filePath, std::ios::binary);
 			if (!ifs)
-				return Result::FileError;
+			{
+				auto result = Result::FileError;
+				handler.onBegin(false);
+				handler.onEnd(result);
+				return result;
+			}
 
 			return parseStlStream(ifs, handler);
 		};
@@ -83,17 +97,11 @@ namespace microstl
 		// Parse STL file from a std::istream source
 		static Result parseStlStream(std::istream& is, Handler& handler)
 		{
-			if (isAsciiFormat(is))
-				return parseAsciiStream(is, handler);
-			else
-				return parseBinaryStream(is, handler);
-		}
-
-		// Parse STL file from a memory buffer
-		static Result parseStlStream(const char* buffer, size_t bufferSize, Handler& handler)
-		{
-			imemstream ims(buffer, bufferSize);
-			return parseStlStream(ims, handler);
+			bool asciiMode = isAsciiFormat(is);
+			handler.onBegin(asciiMode);
+			Result result = asciiMode ? parseAsciiStream(is, handler) : parseBinaryStream(is, handler);
+			handler.onEnd(result);
+			return result;
 		}
 
 		// Some internal safety limits
@@ -203,8 +211,6 @@ namespace microstl
 
 		static Result parseAsciiStream(std::istream& is, Handler& handler)
 		{
-			handler.onAscii();
-
 			// State machine variables
 			bool activeSolid = false;
 			bool activeFacet = false;
@@ -330,8 +336,6 @@ namespace microstl
 
 		static Result parseBinaryStream(std::istream& is, Handler& handler)
 		{
-			handler.onBinary();
-
 			char buffer[80];
 			is.read(buffer, sizeof(buffer));
 			if (!is)
@@ -388,14 +392,26 @@ namespace microstl
 		Mesh mesh;
 		std::string name;
 		std::vector<uint8_t> header;
-		bool ascii = false;
-		size_t errorLineNumber = 0;
+		bool ascii;
+		size_t errorLineNumber;
+		microstl::Parser::Result result;
 
+		MeshParserHandler() { reset(); }
 		void onName(const std::string& n) override { name = n; }
-		void onAscii() override { ascii = true; }
-		void onBinary() override { ascii = false; }
+		void onBegin(bool m) override { reset();  ascii = m; }
 		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
-		void onError(size_t line) override { errorLineNumber = line; }
+		void onError(size_t l) override { errorLineNumber = l; }
+		void onEnd(Parser::Result r) { result = r; }
+
+		void reset()
+		{
+			mesh.facets.clear();
+			name.clear();
+			header.clear();
+			ascii = false;
+			errorLineNumber = 0;
+			result = microstl::Parser::Result::Undefined;
+		}
 
 		void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
 		{
