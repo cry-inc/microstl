@@ -12,6 +12,7 @@ A small C++ library for parsing STL mesh files.
 * Single file, easy to add to your project
 * Does not depend on any third party libraries
 * Works well with your existing mesh data structures
+* Optional vertex deduplication to get a proper face-vertex data structure
 * The parser itself has constant memory requirements (which are low)
 * Tested with Visual Studio, GCC and Clang
 * CMake project for tests and examples

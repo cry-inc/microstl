@@ -200,7 +200,7 @@ int main()
 		REQUIRE(handler.mesh.facets.size() == 1360);
 		const float radius = 10;
 		const float allowedDeviation = 0.00001f;
-		for (auto& f : handler.mesh.facets)
+		for (const auto& f : handler.mesh.facets)
 		{
 			float length1 = sqrt(f.v1.x * f.v1.x + f.v1.y * f.v1.y + f.v1.z * f.v1.z);
 			REQUIRE(fabs(length1 - radius) < allowedDeviation);
@@ -233,6 +233,17 @@ int main()
 		REQUIRE(handler.errorLineNumber == 0);
 		REQUIRE(handler.header.empty());
 		REQUIRE(handler.mesh.facets.empty());
+	}
+
+	{
+		TEST_SCOPE("Parse STL with cube and deduplicate vertices");
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 12);
+		microstl::FVMesh deduplicatedMesh = microstl::deduplicateVertices(handler.mesh);
+		REQUIRE(deduplicatedMesh.facets.size() == 12);
+		REQUIRE(deduplicatedMesh.vertices.size() == 8);
 	}
 
 	return 0;

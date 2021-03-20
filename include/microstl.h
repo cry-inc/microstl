@@ -443,10 +443,17 @@ namespace microstl
 		}
 	}
 
+	// Simple data structures for meshes
 	struct Normal { float x, y, z; };
 	struct Vertex { float x, y, z; };
+
+	// Each facet contains a copy of all three vertex coordinates
 	struct Facet { Vertex v1; Vertex v2; Vertex v3; Normal n; };
 	struct Mesh { std::vector<Facet> facets; };
+
+	// Each facet has three vertex indices
+	struct FVFacet { size_t v1; size_t v2; size_t v3; Normal n; };
+	struct FVMesh { std::vector<Vertex> vertices; std::vector<FVFacet> facets; };
 
 	struct MeshParserHandler : Parser::Handler
 	{
@@ -484,4 +491,33 @@ namespace microstl
 			mesh.facets.push_back(std::move(facet));
 		}
 	};
+
+	// Deduplicates the vertices to create a more common face-vertex data structure
+	FVMesh deduplicateVertices(const Mesh& inputMesh)
+	{
+		FVMesh outputMesh;
+		auto addVertex = [&outputMesh](const Vertex& v)
+		{
+			for (size_t i = 0; i < outputMesh.vertices.size(); i++)
+			{
+				if (v.x == outputMesh.vertices[i].x &&
+					v.y == outputMesh.vertices[i].y &&
+					v.z == outputMesh.vertices[i].z)
+				{
+					return i;
+				}
+			}
+			size_t index = outputMesh.vertices.size();
+			outputMesh.vertices.push_back(v);
+			return index;
+		};
+		for (const auto& f : inputMesh.facets)
+		{
+			size_t i1 = addVertex(f.v1);
+			size_t i2 = addVertex(f.v2);
+			size_t i3 = addVertex(f.v3);
+			outputMesh.facets.push_back(FVFacet{i1, i2, i3, f.n});
+		}
+		return std::move(outputMesh);
+	}
 };
