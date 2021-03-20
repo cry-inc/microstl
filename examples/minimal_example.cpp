@@ -11,12 +11,12 @@ int main()
 	microstl::MeshParserHandler meshHandler;
 
 	// Start parsing the file and let the data go into the mesh handler
-	microstl::Parser::Result result = microstl::Parser::parseStlFile(filePath, meshHandler);
+	microstl::Result result = microstl::Parser::parseStlFile(filePath, meshHandler);
 	
 	// Check if the parsing was successful or if there was an error
-	if (result != microstl::Parser::Result::Success)
+	if (result != microstl::Result::Success)
 	{
-		std::cout << "Error: " << uint16_t(result) << std::endl;
+		std::cout << "Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 	

@@ -13,23 +13,23 @@
 
 namespace microstl
 {
+	// Possible return values
+	enum class Result : uint16_t {
+		Undefined = 0, // Will be never returned by the parser and can be used the to indicate preding or empty results
+		Success = 1, // Everything went smooth, the STL file was parsed without issues
+		FileError = 2, // Unable to read the specified STL file path
+		MissingDataError = 3, // STL data ended unexpectely and is incomplete or otherwise broken
+		UnexpectedError = 4, // Found an unexpected keyword or token in an ASCII STL file
+		ParserError = 5, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
+		LineLimitError = 6, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
+		FacetCountError = 7, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
+		EndianError = 8, // The code currently only supports little endian architectures
+		__LAST__RESULT__VALUE = 9 // Only used for automated checks
+	};
+
 	class Parser
 	{
 	public:
-
-		// Possible parser return values
-		enum class Result : uint16_t {
-			Undefined = 0, // Will be never returned by the parser and can be used the to indicate preding or empty results
-			Success = 1, // Everything went smooth, the STL file was parsed without issues
-			FileError = 2, // Unable to read the specified STL file path
-			MissingDataError = 3, // STL data ended unexpectely and is incomplete or otherwise broken
-			UnexpectedError = 4, // Found an unexpected keyword or token in an ASCII STL file
-			ParserError = 5, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
-			LineLimitError = 6, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
-			FacetCountError = 7, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
-			EndianError = 8, // The code currently only supports little endian architectures
-		};
-
 		// Interface that must be implemented to receive the data from the parsed STL file.
 		class Handler
 		{
@@ -407,6 +407,41 @@ namespace microstl
 		};
 	};
 
+	// Converts the result enum values to readable strings
+	std::string getResultString(Result result)
+	{
+		if (result >= Result::__LAST__RESULT__VALUE)
+			throw std::exception("Invalid result value!");
+
+		static_assert(sizeof(Result) == sizeof(uint16_t), "Please adjust the code below with new type!");
+		const uint16_t knowLastValue = 9u;
+		const uint16_t currentLastValue = static_cast<uint16_t>(Result::__LAST__RESULT__VALUE);
+		static_assert(knowLastValue == currentLastValue, "Please extend the switch cases!");
+		switch (result)
+		{
+		case microstl::Result::Undefined:
+			return "Undefined";
+		case microstl::Result::Success:
+			return "Success";
+		case microstl::Result::FileError:
+			return "FileError";
+		case microstl::Result::MissingDataError:
+			return "MissingDataError";
+		case microstl::Result::UnexpectedError:
+			return "UnexpectedError";
+		case microstl::Result::ParserError:
+			return "ParserError";
+		case microstl::Result::LineLimitError:
+			return "LineLimitError";
+		case microstl::Result::FacetCountError:
+			return "FacetCountError";
+		case microstl::Result::EndianError:
+			return "EndianError";
+		default:
+			throw std::exception("Invalid result value!");
+		}
+	}
+
 	struct Normal { float x, y, z; };
 	struct Vertex { float x, y, z; };
 	struct Facet { Vertex v1; Vertex v2; Vertex v3; Normal n; };
@@ -419,14 +454,14 @@ namespace microstl
 		std::vector<uint8_t> header;
 		bool ascii;
 		size_t errorLineNumber;
-		microstl::Parser::Result result;
+		microstl::Result result;
 
 		MeshParserHandler() { reset(); }
 		void onName(const std::string& n) override { name = n; }
 		void onBegin(bool m) override { reset();  ascii = m; }
 		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
 		void onError(size_t l) override { errorLineNumber = l; }
-		void onEnd(Parser::Result r) override { result = r; }
+		void onEnd(Result r) override { result = r; }
 
 		void reset()
 		{
@@ -435,7 +470,7 @@ namespace microstl
 			header.clear();
 			ascii = false;
 			errorLineNumber = 0;
-			result = microstl::Parser::Result::Undefined;
+			result = microstl::Result::Undefined;
 		}
 
 		void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override

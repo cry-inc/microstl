@@ -45,9 +45,9 @@ struct CustomHandler : microstl::Parser::Handler
 		std::cout << "Attribute: " << int(attribute[0]) << ' ' << int(attribute[1]) << std::endl;
 	}
 
-	void onEnd(microstl::Parser::Result result) override
+	void onEnd(microstl::Result result) override
 	{
-		std::cout << "Finished parsing with return value " << static_cast<uint16_t>(result) << std::endl;
+		std::cout << "Finished parsing with return value " << microstl::getResultString(result) << std::endl;
 	}
 };
 
@@ -58,12 +58,12 @@ int main()
 
 	// Parse STL file with the custom handler as receiver
 	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
-	microstl::Parser::Result result = microstl::Parser::parseStlFile(filePath, handler);
+	microstl::Result result = microstl::Parser::parseStlFile(filePath, handler);
 	
 	// Error handling
-	if (result != microstl::Parser::Result::Success)
+	if (result != microstl::Result::Success)
 	{
-		std::cout << "Error: " << uint16_t(result) << std::endl;
+		std::cout << "Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 
