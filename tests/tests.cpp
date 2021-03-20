@@ -246,5 +246,31 @@ int main()
 		REQUIRE(deduplicatedMesh.vertices.size() == 8);
 	}
 
+	{
+		TEST_SCOPE("Full cycle test of reader, deduplicator and writer");
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		auto fvMesh = microstl::deduplicateVertices(handler.mesh);
+		REQUIRE(fvMesh.vertices.size() == 8);
+
+		microstl::FVMeshProvider fvProvider(fvMesh);
+		res = microstl::Writer::writeStlFile("binary.stl", fvProvider);
+		REQUIRE(res == microstl::Result::Success);
+
+		res = microstl::Parser::parseStlFile("binary.stl", handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 12);
+
+		microstl::MeshProvider provider(handler.mesh, true);
+		res = microstl::Writer::writeStlFile("ascii.stl", provider);
+		REQUIRE(res == microstl::Result::Success);
+
+		res = microstl::Parser::parseStlFile("ascii.stl", handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 12);
+	}
+
 	return 0;
 }

@@ -654,9 +654,11 @@ namespace microstl
 	struct MeshProvider : microstl::Writer::Provider
 	{
 		const microstl::Mesh& mesh;
+		bool ascii;
 
-		MeshProvider(const microstl::Mesh& m) : mesh(m) {}
+		MeshProvider(const microstl::Mesh& m, bool asciiMode = false) : mesh(m), ascii(asciiMode) {}
 		size_t getFacetCount() override { return mesh.facets.size(); }
+		bool asciiMode() override { return ascii; }
 
 		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
 		{
@@ -672,9 +674,11 @@ namespace microstl
 	struct FVMeshProvider : microstl::Writer::Provider
 	{
 		const microstl::FVMesh& mesh;
+		bool ascii;
 
-		FVMeshProvider(const microstl::FVMesh& m) : mesh(m) {}
+		FVMeshProvider(const microstl::FVMesh& m, bool asciiMode = false) : mesh(m), ascii(asciiMode) {}
 		size_t getFacetCount() override { return mesh.facets.size(); }
+		bool asciiMode() override { return ascii; }
 
 		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
 		{
