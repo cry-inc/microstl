@@ -251,6 +251,7 @@ int main()
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		auto orgMeshCopy = handler.mesh;
 
 		auto fvMesh = microstl::deduplicateVertices(handler.mesh);
 		REQUIRE(fvMesh.vertices.size() == 8);
@@ -270,6 +271,24 @@ int main()
 		res = microstl::Parser::parseStlFile("ascii.stl", handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
 		REQUIRE(handler.mesh.facets.size() == 12);
+
+		for (size_t i = 0; i < 12; i++)
+		{
+			const auto& orgFacet = orgMeshCopy.facets[i];
+			const auto& facet = handler.mesh.facets[i];
+			REQUIRE(orgFacet.n.x == facet.n.x);
+			REQUIRE(orgFacet.n.y == facet.n.y);
+			REQUIRE(orgFacet.n.z == facet.n.z);
+			REQUIRE(orgFacet.v1.x == facet.v1.x);
+			REQUIRE(orgFacet.v1.y == facet.v1.y);
+			REQUIRE(orgFacet.v1.z == facet.v1.z);
+			REQUIRE(orgFacet.v2.x == facet.v2.x);
+			REQUIRE(orgFacet.v2.y == facet.v2.y);
+			REQUIRE(orgFacet.v2.z == facet.v2.z);
+			REQUIRE(orgFacet.v3.x == facet.v3.x);
+			REQUIRE(orgFacet.v3.y == facet.v3.y);
+			REQUIRE(orgFacet.v3.z == facet.v3.z);
+		}
 	}
 
 	return 0;
