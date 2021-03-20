@@ -471,13 +471,11 @@ namespace microstl
 		};
 
 		// Write STL file data to a memory buffer
-		static Result writeStlBuffer(std::vector<uint8_t>& buffer, Provider& provider)
+		static Result writeStlBuffer(std::string& buffer, Provider& provider)
 		{
-			std::stringstream ss;
+			std::ostringstream ss;
 			Result result = writeStlStream(ss, provider);
-			std::string str = ss.str();
-			buffer.resize(str.size());
-			memcpy(buffer.data(), str.data(), str.size());
+			buffer = std::move(ss.str());
 			return result;
 		}
 
