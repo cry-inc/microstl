@@ -8,10 +8,10 @@ int main()
 	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
 	
 	// Use included handler that creates a simple mesh data structure
-	microstl::MeshParserHandler meshHandler;
+	microstl::MeshReaderHandler meshHandler;
 
 	// Start parsing the file and let the data go into the mesh handler
-	microstl::Result result = microstl::Parser::parseStlFile(filePath, meshHandler);
+	microstl::Result result = microstl::Reader::readStlFile(filePath, meshHandler);
 	
 	// Check if the parsing was successful or if there was an error
 	if (result != microstl::Result::Success)

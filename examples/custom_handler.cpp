@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-struct CustomHandler : microstl::Parser::Handler
+struct CustomHandler : microstl::Reader::Handler
 {
 	void onBegin(bool asciiMode) override
 	{
@@ -58,7 +58,7 @@ int main()
 
 	// Parse STL file with the custom handler as receiver
 	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
-	microstl::Result result = microstl::Parser::parseStlFile(filePath, handler);
+	microstl::Result result = microstl::Reader::readStlFile(filePath, handler);
 	
 	// Error handling
 	if (result != microstl::Result::Success)

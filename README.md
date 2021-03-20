@@ -21,10 +21,10 @@ A small C++ library for reading and writing STL mesh files.
 1. Download the header file `microstl.h`
 2. Put the file into your include directory
 3. Include the file: `#include <microstl.h>`
-4. Create a handler that receives the data and creates a mesh: `microstl::MeshParserHandler meshHandler;`
-5. Call the parser with the STL file path and the handler: `microstl::Parser::parseStlFile("path/to/my.stl", meshHandler);`
-6. Check return value of the parser for `microstl::Result::Success` and handle any errors 
-7. Access the trinagle data in the mesh handler at `meshHandler.mesh.facets`
+4. Create a handler that receives the data and creates a mesh: `microstl::MeshReaderHandler meshHandler;`
+5. Call the reader with the STL file path and the handler: `microstl::Reader::readStlFile("path/to/my.stl", meshHandler);`
+6. Check return value of the reader for `microstl::Result::Success` and handle any errors 
+7. Access the triangle data in the mesh handler at `meshHandler.mesh.facets`
 
 Check out the `examples` folder for more code examples.
 The file `custom_handler.cpp` shows how to write your own handler.

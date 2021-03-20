@@ -6,8 +6,8 @@ int main()
 {
 	std::filesystem::path filePath = "../../testdata/box_meshlab_ascii.stl";
 
-	microstl::MeshParserHandler meshHandler;
-	microstl::Result result = microstl::Parser::parseStlFile(filePath, meshHandler);
+	microstl::MeshReaderHandler meshHandler;
+	microstl::Result result = microstl::Reader::readStlFile(filePath, meshHandler);
 	if (result != microstl::Result::Success)
 	{
 		std::cout << "Error: " << microstl::getResultString(result) << std::endl;

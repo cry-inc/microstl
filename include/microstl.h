@@ -16,8 +16,8 @@ namespace microstl
 {
 	// Possible return values
 	enum class Result : uint16_t {
-		Undefined = 0, // Will be never returned by the parser and can be used the to indicate preding or empty results
-		Success = 1, // Everything went smooth, the STL file was parsed without issues
+		Undefined = 0, // Will be never returned by the reader and can be used the to indicate preding or empty results
+		Success = 1, // Everything went smooth, the STL file was read or written without issues
 		FileError = 2, // Unable to read or write the specified file path
 		MissingDataError = 3, // STL data ended unexpectely and is incomplete or otherwise broken
 		UnexpectedError = 4, // Found an unexpected keyword or token in an ASCII STL file
@@ -28,10 +28,10 @@ namespace microstl
 		__LAST__RESULT__VALUE = 9 // Only used for automated checks
 	};
 
-	class Parser
+	class Reader
 	{
 	public:
-		// Interface that must be implemented to receive the data from the parsed STL file
+		// Interface that must be implemented to receive the data from the STL file
 		class Handler
 		{
 		public:
@@ -63,22 +63,22 @@ namespace microstl
 			virtual void onEnd(Result result) {}
 		};
 
-		// Parse STL file directly from disk using an UTF8 or ASCII path
-		static Result parseStlFile(const char* utf8FilePath, Handler& handler)
+		// Read STL file directly from disk using an UTF8 or ASCII path
+		static Result readStlFile(const char* utf8FilePath, Handler& handler)
 		{
 			std::filesystem::path path = std::filesystem::u8path(utf8FilePath);
-			return parseStlFile(path, handler);
+			return readStlFile(path, handler);
 		}
 
-		// Parse STL file directly from disk using an wide string path
-		static Result parseStlFile(const wchar_t* filePath, Handler& handler)
+		// Read STL file directly from disk using an wide string path
+		static Result readStlFile(const wchar_t* filePath, Handler& handler)
 		{
 			std::filesystem::path path(filePath);
-			return parseStlFile(path, handler);
+			return readStlFile(path, handler);
 		}
 
-		// Parse STL file directly from disk using a std::filesystem path
-		static Result parseStlFile(const std::filesystem::path& filePath, Handler& handler)
+		// Read STL file directly from disk using a std::filesystem path
+		static Result readStlFile(const std::filesystem::path& filePath, Handler& handler)
 		{
 			std::ifstream ifs(filePath, std::ios::binary);
 			if (!ifs)
@@ -89,22 +89,22 @@ namespace microstl
 				return result;
 			}
 
-			return parseStlStream(ifs, handler);
+			return readStlStream(ifs, handler);
 		};
 
-		// Parse STL file from a memory buffer
-		static Result parseStlBuffer(const char* buffer, size_t bufferSize, Handler& handler)
+		// Read STL file from a memory buffer
+		static Result readStlBuffer(const char* buffer, size_t bufferSize, Handler& handler)
 		{
 			imstream stream(buffer, bufferSize);
-			return parseStlStream(stream, handler);
+			return readStlStream(stream, handler);
 		}
 
-		// Parse STL file from a std::istream source
-		static Result parseStlStream(std::istream& is, Handler& handler)
+		// Read STL file from a std::istream source
+		static Result readStlStream(std::istream& is, Handler& handler)
 		{
 			bool asciiMode = isAsciiFormat(is);
 			handler.onBegin(asciiMode);
-			Result result = asciiMode ? parseAsciiStream(is, handler) : parseBinaryStream(is, handler);
+			Result result = asciiMode ? readAsciiStream(is, handler) : readBinaryStream(is, handler);
 			handler.onEnd(result);
 			return result;
 		}
@@ -221,7 +221,7 @@ namespace microstl
 			return ptr[0] == 1;
 		}
 
-		static Result parseAsciiStream(std::istream& is, Handler& handler)
+		static Result readAsciiStream(std::istream& is, Handler& handler)
 		{
 			// State machine variables
 			bool activeSolid = false;
@@ -231,7 +231,7 @@ namespace microstl
 			float n[3] = { 0, };
 			float v[9] = { 0, };
 
-			// Line parse with loop to work the state machine
+			// Line reader with loop to work the state machine
 			while (true)
 			{
 				lineNumber++;
@@ -346,7 +346,7 @@ namespace microstl
 			return Result::Success;
 		}
 
-		static Result parseBinaryStream(std::istream& is, Handler& handler)
+		static Result readBinaryStream(std::istream& is, Handler& handler)
 		{
 			if (!isLittleEndian())
 				return Result::EndianError;
@@ -479,7 +479,7 @@ namespace microstl
 			return result;
 		}
 
-		// Parse STL file from a std::istream source
+		// Write STL file from to a std::ostream
 		static Result writeStlStream(std::ostream& os, Provider& provider)
 		{
 			bool asciiMode = provider.asciiMode();
@@ -613,7 +613,7 @@ namespace microstl
 	struct FVFacet { size_t v1; size_t v2; size_t v3; Normal n; };
 	struct FVMesh { std::vector<Vertex> vertices; std::vector<FVFacet> facets; };
 
-	struct MeshParserHandler : Parser::Handler
+	struct MeshReaderHandler : Reader::Handler
 	{
 		Mesh mesh;
 		std::string name;
@@ -622,7 +622,7 @@ namespace microstl
 		size_t errorLineNumber;
 		microstl::Result result;
 
-		MeshParserHandler() { reset(); }
+		MeshReaderHandler() { reset(); }
 		void onName(const std::string& n) override { name = n; }
 		void onBegin(bool m) override { reset();  ascii = m; }
 		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
