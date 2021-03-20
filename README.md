@@ -19,18 +19,19 @@ A small C++ library for parsing STL mesh files.
 ## Quickstart
 
 1. Download the header file `microstl.h`
-2. Put the header file into your include directory
-3. Add `#include <microstl.h>` to your source code
-4. Create a handler that receives the parsed data and creates a mesh `microstl::MeshParserHandler meshHandler;`
-5. Call the parser wiith the STL data and the handler as arguments: `microstl::Parser::parseStlFile("path/to/my.stl", meshHandler);`
+2. Put the file into your include directory
+3. Include the file: `#include <microstl.h>`
+4. Create a handler that receives the data and creates a mesh: `microstl::MeshParserHandler meshHandler;`
+5. Call the parser with the STL file path and the handler: `microstl::Parser::parseStlFile("path/to/my.stl", meshHandler);`
 6. Check return value of the parser for `microstl::Result::Success` and handle any errors 
-7. Access your extracted mesh: `auto mesh = meshHandler.mesh;`
+7. Access the trinagle data in the mesh handler at `meshHandler.mesh.facets`
 
 Check out the `examples` folder for complete code examples.
-The file `custom_handler.cpp` shows how to write your own handler that can be used to fill your existing mesh data structues.
+The file `custom_handler.cpp` shows how to write your own handler.
+Such a custom handler can be used to fill your existing mesh data structues.
 
 ## Limitations
 
-* Requires at least C++17
+* Requires at least a C++ 17 compiler
 * Binary parser works only on little-endian systems
 * Only contains a parser, no writer
