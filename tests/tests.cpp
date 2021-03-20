@@ -158,14 +158,23 @@ int main()
 	}
 
 	{
-		std::ifstream file(findTestFile("simple_ascii.stl"), std::ios::binary | std::ios::ate);
-		std::streamsize size = file.tellg();
-		REQUIRE(size > 0);
-		file.seekg(0, std::ios::beg);
+		std::ifstream ifs(findTestFile("simple_ascii.stl"), std::ios::binary | std::ios::ate);
+		std::streamsize size = ifs.tellg();
+		ifs.seekg(0, std::ios::beg);
 		std::vector<char> buffer(size);
-		file.read(buffer.data(), size);
+		ifs.read(buffer.data(), size);
+		REQUIRE(size > 0);
+
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlBuffer(buffer.data(), buffer.size(), handler);
+		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 1);
+	}
+
+	{
+		std::ifstream ifs(findTestFile("simple_ascii.stl"), std::ios::binary);
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlStream(ifs, handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
 		REQUIRE(handler.mesh.facets.size() == 1);
 	}
