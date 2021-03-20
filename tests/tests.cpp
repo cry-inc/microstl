@@ -1,7 +1,7 @@
 ﻿#include <microstl.h>
 
 #define TEST_SCOPE(x)
-#define REQUIRE(x) {if (!(x)) throw std::exception(); }
+#define REQUIRE(x) {if (!(x)) throw std::runtime_error("Test assertioin failed!"); }
 
 std::filesystem::path findTestFile(std::string fileName)
 {
@@ -16,10 +16,10 @@ std::filesystem::path findTestFile(std::string fileName)
 		if (dir.has_parent_path() && dir.parent_path() != dir)
 			dir = dir.parent_path();
 		else
-			throw std::exception();
+			throw std::runtime_error("Unable to find parent folder!");
 	}
 
-	throw std::exception();
+	throw std::runtime_error("Unable to find test file!");
 }
 
 int main()

@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <streambuf>
 #include <vector>
+#include <exception>
 
 namespace microstl
 {
@@ -411,7 +412,7 @@ namespace microstl
 	std::string getResultString(Result result)
 	{
 		if (result >= Result::__LAST__RESULT__VALUE)
-			throw std::exception("Invalid result value!");
+			throw std::runtime_error("Invalid result value!");
 
 		static_assert(sizeof(Result) == sizeof(uint16_t), "Please adjust the code below with new type!");
 		const uint16_t knowLastValue = 9u;
@@ -438,7 +439,7 @@ namespace microstl
 		case microstl::Result::EndianError:
 			return "EndianError";
 		default:
-			throw std::exception("Invalid result value!");
+			throw std::runtime_error("Invalid result value!");
 		}
 	}
 
