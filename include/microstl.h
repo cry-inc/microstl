@@ -412,7 +412,7 @@ namespace microstl
 		void onBegin(bool m) override { reset();  ascii = m; }
 		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
 		void onError(size_t l) override { errorLineNumber = l; }
-		void onEnd(Parser::Result r) { result = r; }
+		void onEnd(Parser::Result r) override { result = r; }
 
 		void reset()
 		{
