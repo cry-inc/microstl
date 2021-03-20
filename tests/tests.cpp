@@ -193,6 +193,25 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Parse STL with sphere and check all vertices");
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile(findTestFile("sphere_binary.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 1360);
+		const float radius = 10;
+		const float allowedDeviation = 0.00001f;
+		for (auto& f : handler.mesh.facets)
+		{
+			float length1 = sqrt(f.v1.x * f.v1.x + f.v1.y * f.v1.y + f.v1.z * f.v1.z);
+			REQUIRE(fabs(length1 - radius) < allowedDeviation);
+			float length2 = sqrt(f.v2.x * f.v2.x + f.v2.y * f.v2.y + f.v2.z * f.v2.z);
+			REQUIRE(fabs(length2 - radius) < allowedDeviation);
+			float length3 = sqrt(f.v3.x * f.v3.x + f.v3.y * f.v3.y + f.v3.z * f.v3.z);
+			REQUIRE(fabs(length3 - radius) < allowedDeviation);
+		}
+	}
+
+	{
 		TEST_SCOPE("Test parsing an empty file and check for correct error");
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("empty_file.stl"), handler);
