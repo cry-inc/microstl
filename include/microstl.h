@@ -24,6 +24,7 @@ namespace microstl
 			ParserError = 5, // Unable to parse vertex coordinates or normal vector in an ASCII STL file
 			LineLimitError = 6, // ASCII line size exceeded internal safety limit of ASCII_LINE_LIMIT
 			FacetCountError = 7, // Binray file exceeds internal safety limit of BINARY_FACET_LIMIT
+			EndianError = 8, // The code currently only supports little endian architectures
 		};
 
 		// Interface that must be implemented to receive the data from the parsed STL file.
@@ -209,6 +210,13 @@ namespace microstl
 				return calculateNormals(v1, v2, v3, n);
 		}
 
+		static bool isLittleEndian()
+		{
+			int16_t number = 1;
+			const char* ptr = reinterpret_cast<const char*>(&number);
+			return ptr[0] == 1;
+		}
+
 		static Result parseAsciiStream(std::istream& is, Handler& handler)
 		{
 			// State machine variables
@@ -336,6 +344,9 @@ namespace microstl
 
 		static Result parseBinaryStream(std::istream& is, Handler& handler)
 		{
+			if (!isLittleEndian())
+				return Result::EndianError;
+
 			char buffer[80];
 			is.read(buffer, sizeof(buffer));
 			if (!is)
