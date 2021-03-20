@@ -76,13 +76,6 @@ namespace microstl
 			return parseStlFile(path, handler);
 		}
 
-		// Parse STL file from a memory buffer
-		static Result parseStlStream(const char* buffer, size_t bufferSize, Handler& handler)
-		{
-			imemstream ims(buffer, bufferSize);
-			return parseStlStream(ims, handler);
-		}
-
 		// Parse STL file directly from disk using a std::filesystem path
 		static Result parseStlFile(const std::filesystem::path& filePath, Handler& handler)
 		{
@@ -97,6 +90,13 @@ namespace microstl
 
 			return parseStlStream(ifs, handler);
 		};
+
+		// Parse STL file from a memory buffer
+		static Result parseStlBuffer(const char* buffer, size_t bufferSize, Handler& handler)
+		{
+			imstream stream(buffer, bufferSize);
+			return parseStlStream(stream, handler);
+		}
 
 		// Parse STL file from a std::istream source
 		static Result parseStlStream(std::istream& is, Handler& handler)
@@ -381,17 +381,28 @@ namespace microstl
 		}
 
 		// Private helpers to convert a memory buffer into a seekable istream
-		// See source here: https://stackoverflow.com/a/13059195
-		struct membuf : std::streambuf {
-			membuf(char const* base, size_t size) {
-				char* p(const_cast<char*>(base));
+		// See source here: https://stackoverflow.com/a/46069245
+		struct membuf : std::streambuf
+		{
+			membuf(char const* base, size_t size)
+			{
+				char* p = const_cast<char*>(base);
 				this->setg(p, p, p + size);
 			}
 		};
-		struct imemstream : virtual membuf, std::istream {
-			imemstream(char const* base, size_t size)
-				: membuf(base, size)
-				, std::istream(static_cast<std::streambuf*>(this)) {
+		struct imstream : virtual membuf, std::istream
+		{
+			imstream(char const* base, size_t size) : membuf(base, size), std::istream(static_cast<std::streambuf*>(this)) {}
+			std::iostream::pos_type seekpos(std::iostream::pos_type sp, std::ios_base::openmode which) override
+			{
+				return seekoff(sp - std::iostream::pos_type(std::iostream::off_type(0)), std::ios_base::beg, which);
+			}
+			std::iostream::pos_type seekoff(std::iostream::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which = std::ios_base::in) override
+			{
+				if (dir == std::ios_base::cur) gbump(static_cast<int>(off));
+				else if (dir == std::ios_base::end) setg(eback(), egptr() + off, egptr());
+				else if (dir == std::ios_base::beg) setg(eback(), eback() + off, egptr());
+				return gptr() - eback();
 			}
 		};
 	};

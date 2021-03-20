@@ -140,6 +140,37 @@ int main()
 	}
 
 	{
+		auto filePath = findTestFile("simple_ascii.stl");
+		auto utf8String = filePath.u8string();
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile(utf8String.c_str(), handler);
+		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 1);
+	}
+
+	{
+		auto filePath = findTestFile("simple_ascii.stl");
+		auto wideString = filePath.wstring();
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlFile(wideString.c_str(), handler);
+		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 1);
+	}
+
+	{
+		std::ifstream file(findTestFile("simple_ascii.stl"), std::ios::binary | std::ios::ate);
+		std::streamsize size = file.tellg();
+		REQUIRE(size > 0);
+		file.seekg(0, std::ios::beg);
+		std::vector<char> buffer(size);
+		file.read(buffer.data(), size);
+		microstl::MeshParserHandler handler;
+		auto res = microstl::Parser::parseStlBuffer(buffer.data(), buffer.size(), handler);
+		REQUIRE(res == handler.result && res == microstl::Parser::Result::Success);
+		REQUIRE(handler.mesh.facets.size() == 1);
+	}
+
+	{
 		microstl::MeshParserHandler handler;
 		auto res = microstl::Parser::parseStlFile(findTestFile("empty_file.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Parser::Result::MissingDataError);
