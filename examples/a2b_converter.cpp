@@ -14,10 +14,7 @@ int main()
 	}
 
 	if (meshHandler.ascii == false)
-	{
-		std::cout << "Input file is already a binary STL file!" << std::endl;
-		return 1;
-	}
+		std::cout << "Warning: Input file is already a binary STL file!" << std::endl;
 
 	auto folder = filePath.parent_path();
 	auto newFileName = filePath.stem().string() + "_binary.stl";
