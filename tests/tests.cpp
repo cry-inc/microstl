@@ -195,6 +195,7 @@ int main()
 	{
 		TEST_SCOPE("Parse STL with sphere and check all vertices");
 		microstl::MeshReaderHandler handler;
+		handler.recalcNormals = true;
 		auto res = microstl::Reader::readStlFile(findTestFile("sphere_binary.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
 		REQUIRE(handler.mesh.facets.size() == 1360);

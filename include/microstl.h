@@ -49,6 +49,10 @@ namespace microstl
 			// May be called when parsing an ASCII STL file with a valid name. Will be always called before onFacet()
 			virtual void onName(const std::string& name) {}
 
+			// Return true to force the recalulcation of the normal vector for all facets.
+			// By default this is only done for zero normal vectors or normal vectors with an invalid length.
+			virtual bool recalculateNormals() { return false; }
+
 			// Might be called in ASCII mode when an error is detected to signal the line number of the problem
 			// Do not rely on this method to be called when an error occurs, its fully optional!
 			virtual void onError(size_t lineNumber) {}
@@ -231,6 +235,8 @@ namespace microstl
 			float n[3] = { 0, };
 			float v[9] = { 0, };
 
+			bool recalculateNormals = handler.recalculateNormals();
+
 			// Line reader with loop to work the state machine
 			while (true)
 			{
@@ -300,7 +306,10 @@ namespace microstl
 					activeFacet = false;
 					facetCount++;
 					loopCount = 0;
-					checkAndFixNormals(v + 0, v + 3, v + 6, n);
+					if (recalculateNormals)
+						calculateNormals(v + 0, v + 3, v + 6, n);
+					else
+						checkAndFixNormals(v + 0, v + 3, v + 6, n);
 					handler.onFacet(v + 0, v + 3, v + 6, n);
 				}
 				if (stringStartsWith(line, "outer loop"))
@@ -356,6 +365,7 @@ namespace microstl
 			if (!is)
 				return Result::MissingDataError;
 			handler.onBinaryHeader(reinterpret_cast<const uint8_t*>(buffer));
+
 			is.read(buffer, 4);
 			if (!is)
 				return Result::MissingDataError;
@@ -365,6 +375,8 @@ namespace microstl
 			if (facetCount > BINARY_FACET_LIMIT)
 				return Result::FacetCountError;
 			handler.onFacetCount(facetCount);
+
+			bool recalculateNormals = handler.recalculateNormals();
 			for (size_t t = 0; t < facetCount; t++)
 			{
 				is.read(buffer, 50);
@@ -372,7 +384,10 @@ namespace microstl
 					return Result::MissingDataError;
 				float values[12];
 				memcpy(values, buffer, 4 * 12);
-				checkAndFixNormals(values + 3, values + 6, values + 9, values);
+				if (recalculateNormals)
+					calculateNormals(values + 3, values + 6, values + 9, values);
+				else
+					checkAndFixNormals(values + 3, values + 6, values + 9, values);
 				handler.onFacet(values + 3, values + 6, values + 9, values);
 				if (buffer[48] != 0 || buffer[49] != 0)
 					handler.onFacetAttributes(reinterpret_cast<const uint8_t*>(buffer + 48));
@@ -621,17 +636,19 @@ namespace microstl
 		bool ascii;
 		size_t errorLineNumber;
 		microstl::Result result;
+		bool recalcNormals = false;
 
-		MeshReaderHandler() { reset(); }
+		MeshReaderHandler() { clear(); }
 		void onName(const std::string& n) override { name = n; }
-		void onBegin(bool m) override { reset();  ascii = m; }
+		void onBegin(bool m) override { clear();  ascii = m; }
 		void onBinaryHeader(const uint8_t buffer[80]) override { header.resize(80); memcpy(header.data(), buffer, 80); }
+		bool recalculateNormals() override { return recalcNormals; }
 		void onError(size_t l) override { errorLineNumber = l; }
 		void onEnd(Result r) override { result = r; }
 
-		void reset()
+		void clear()
 		{
-			mesh.facets.clear();
+			mesh = Mesh();
 			name.clear();
 			header.clear();
 			ascii = false;
