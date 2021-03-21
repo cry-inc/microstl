@@ -203,6 +203,7 @@ int main()
 		const float allowedDeviation = 0.00001f;
 		for (const auto& f : handler.mesh.facets)
 		{
+			// Check if all vertices are on the sphere surface
 			float length1 = sqrt(f.v1.x * f.v1.x + f.v1.y * f.v1.y + f.v1.z * f.v1.z);
 			REQUIRE(fabs(length1 - radius) < allowedDeviation);
 			float length2 = sqrt(f.v2.x * f.v2.x + f.v2.y * f.v2.y + f.v2.z * f.v2.z);
@@ -216,6 +217,10 @@ int main()
 			float tmp[3] = {origin[0] - f.v1.x, origin[1] - f.v1.y, origin[2] - f.v1.z};
 			float dot = f.n.x * tmp[0] + f.n.y * tmp[1] + f.n.z * tmp[2];
 			REQUIRE(dot < 0);
+
+			// Check normal vector length
+			float length = sqrt(f.n.x * f.n.x + f.n.y * f.n.y + f.n.z * f.n.z);
+			REQUIRE(fabs(length - 1.0f) < allowedDeviation);
 		}
 	}
 
