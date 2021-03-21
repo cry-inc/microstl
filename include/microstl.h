@@ -206,6 +206,10 @@ namespace microstl
 			n[0] = u[1] * v[2] - u[2] * v[1];
 			n[1] = u[2] * v[0] - u[0] * v[2];
 			n[2] = u[0] * v[1] - u[1] * v[0];
+			float length = sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+			n[0] /= length;
+			n[1] /= length;
+			n[2] /= length;
 		}
 
 		static void checkAndFixNormals(const float v1[3], const float v2[3], const float v3[3], float n[3])
