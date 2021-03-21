@@ -208,6 +208,13 @@ int main()
 			REQUIRE(fabs(length2 - radius) < allowedDeviation);
 			float length3 = sqrt(f.v3.x * f.v3.x + f.v3.y * f.v3.y + f.v3.z * f.v3.z);
 			REQUIRE(fabs(length3 - radius) < allowedDeviation);
+
+			// Check if origin is "behind" the normal plane
+			// (normal of all sphere surface triangle should point away from the origin)
+			float origin[3] = { 0, 0, 0 };
+			float tmp[3] = {origin[0] - f.v1.x, origin[1] - f.v1.y, origin[2] - f.v1.z};
+			float dot = f.n.x * tmp[0] + f.n.y * tmp[1] + f.n.z * tmp[2];
+			REQUIRE(dot < 0);
 		}
 	}
 
