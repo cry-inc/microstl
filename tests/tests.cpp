@@ -260,6 +260,82 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Simple writer test");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		std::filesystem::path path("tmp.stl");
+		REQUIRE(!std::filesystem::exists(path));
+		res = microstl::Writer::writeStlFile(path, provider);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(path));
+		std::filesystem::remove(path);
+	}
+
+	{
+		TEST_SCOPE("Test writer with UTF8 file path");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		auto utf8Path = std::filesystem::u8path(u8"简化字.stl");
+		REQUIRE(!std::filesystem::exists(utf8Path));
+		res = microstl::Writer::writeStlFile(utf8Path.u8string().c_str(), provider);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(utf8Path));
+		std::filesystem::remove(utf8Path);
+	}
+
+	#ifdef _WIN32 // Wide strings are only common on Windows
+	{
+		TEST_SCOPE("Test writer with wide string file path");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		std::filesystem::path widePath(L"简化字.stl");
+		REQUIRE(!std::filesystem::exists(widePath));
+		res = microstl::Writer::writeStlFile(widePath.wstring().c_str(), provider);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(widePath));
+		std::filesystem::remove(widePath);
+	}
+	#endif
+
+	{
+		TEST_SCOPE("Test writer with buffer interface");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		std::string buffer;
+		res = microstl::Writer::writeStlBuffer(buffer, provider);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(buffer.size() == 80 + 4 + 12 * (12 * 4 + 2));
+	}
+
+	{
+		TEST_SCOPE("Test writer with stream interface");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		std::ofstream ofs("tmp.stl", std::ios::binary);
+		res = microstl::Writer::writeStlStream(ofs, provider);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(ofs.tellp() == 80 + 4 + 12 * (12 * 4 + 2));
+		ofs.close();
+		REQUIRE(std::filesystem::exists("tmp.stl"));
+		std::filesystem::remove("tmp.stl");
+	}
+
+	{
 		TEST_SCOPE("Full cycle test of reader, deduplicator and writer");
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
@@ -302,6 +378,9 @@ int main()
 			REQUIRE(orgFacet.v3.y == facet.v3.y);
 			REQUIRE(orgFacet.v3.z == facet.v3.z);
 		}
+
+		std::filesystem::remove("ascii.stl");
+		std::filesystem::remove("binary.stl");
 	}
 
 	return 0;
