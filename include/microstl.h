@@ -177,12 +177,18 @@ namespace microstl
 				index++;
 			}
 
+			if (output.size() == 0)
+				return output;
+
 			index = output.size() - 1;
-			while (index >= 0 && isWhiteSpace(output[index]))
-				index--;
+			while (isWhiteSpace(output[index]))
+				if (index == 0)
+					break;
+				else
+					index--;
 
 			output.resize(index + 1);
-			return std::move(output);
+			return output;
 		}
 
 		static inline bool stringStartsWith(const std::string& str, const char* prefix)
@@ -508,7 +514,7 @@ namespace microstl
 		{
 			std::ostringstream ss;
 			Result result = writeStlStream(ss, provider);
-			buffer = std::move(ss.str());
+			buffer = ss.str();
 			return result;
 		}
 
@@ -753,6 +759,6 @@ namespace microstl
 			size_t i3 = addVertex(f.v3);
 			outputMesh.facets.push_back(FVFacet{i1, i2, i3, f.n});
 		}
-		return std::move(outputMesh);
+		return outputMesh;
 	}
 };
