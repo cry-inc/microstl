@@ -50,3 +50,23 @@ jobs:
     - name: Run Test
       working-directory: ${{github.workspace}}/build
       run: ctest -C Release --verbose
+  code-coverage-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install lcov
+      run: sudo apt-get install -y lcov
+    - name: Compile with coverage enabled
+      run: g++ --coverage tests/tests.cpp -I include/ -std=c++17
+    - name: Execute tests
+      run: ./a.out
+    - name: Run gcov
+      run: gcov -abcfu tests.cpp
+    - name: Generate coverage info
+      run: lcov --no-external -d . --capture -o cov.dat
+    - name: Generate HTML report
+      run: genhtml cov.dat --output-directory coverage
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-report
+        path: coverage/**/*
