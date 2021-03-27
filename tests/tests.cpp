@@ -296,6 +296,16 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test incomplete binary STL file");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("incomplete_binary.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::MissingDataError);
+		REQUIRE(!handler.ascii);
+		REQUIRE(handler.header.size() == 80);
+		REQUIRE(handler.mesh.facets.size() == 5);
+	}
+
+	{
 		TEST_SCOPE("Simple writer test");
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
