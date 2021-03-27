@@ -13,8 +13,9 @@ A small C++ library for reading and writing STL mesh files.
 * Does not depend on any third-party libraries
 * Works well with your existing mesh data structures
 * Optional vertex deduplication after reading (to get a proper face-vertex data structure)
-* Tested with Visual Studio, GCC and Clang
 * CMake for tests and examples
+* Tested with Visual Studio, GCC and Clang
+* Automated builds, tests and code coverage analysis using GitHub Actions
 
 ## Quickstart: Reading a STL file
 
