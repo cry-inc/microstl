@@ -226,6 +226,20 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test default handler implementation");
+		struct MyHandler : microstl::Reader::Handler
+		{
+			size_t facetCount = 0;
+			void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
+			{ facetCount++; }
+		};
+		MyHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("simple_ascii.stl"), handler);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(handler.facetCount == 1);
+	}
+
+	{
 		TEST_SCOPE("Test parsing an otherwise valid ASCII file that exceeds the line limit");
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("exceed_ascii_line_limit.stl"), handler);
@@ -396,6 +410,30 @@ int main()
 		providerAscii.ascii = true;
 		REQUIRE(!std::filesystem::exists(path));
 		res = microstl::Writer::writeStlFile(path, providerAscii);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(path));
+		std::filesystem::remove(path);
+	}
+
+	{
+		TEST_SCOPE("Test default provider implementation");
+		struct MyProvider : microstl::Writer::Provider
+		{
+			size_t getFacetCount() override
+			{ return 1; }
+			void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
+			{
+				REQUIRE(index == 0);
+				v1[0] = 0; v1[1] = 0; v1[2] = 0;
+				v2[0] = 0; v2[1] = 0; v2[2] = 1;
+				v3[0] = 0; v3[1] = 1; v3[2] = 1;
+				n[0] = -1; n[1] = 0; n[2] = 0;
+			}
+		};
+		MyProvider provider;
+		std::filesystem::path path("tmp.stl");
+		REQUIRE(!std::filesystem::exists(path));
+		auto res = microstl::Writer::writeStlFile(path, provider);
 		REQUIRE(res == microstl::Result::Success);
 		REQUIRE(std::filesystem::exists(path));
 		std::filesystem::remove(path);
