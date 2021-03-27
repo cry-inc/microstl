@@ -127,10 +127,11 @@ namespace microstl
 	private:
 		static bool isAsciiFormat(std::istream& is)
 		{
-			char header[5] = { 0, };
-			is.read(header, sizeof(header));
+			const char expected[] = {'s', 'o', 'l', 'i', 'd'};
+			char header[sizeof(expected)] = { 0, };
+			is.read(header, sizeof(expected));
 			is.seekg(0, std::ios::beg);
-			return memcmp("solid", header, sizeof(header)) == 0;
+			return memcmp(expected, header, sizeof(expected)) == 0;
 		}
 
 		static bool readNextLine(std::istream& is, std::string& output)
@@ -154,37 +155,42 @@ namespace microstl
 			return true;
 		}
 
-		static std::string stringTrim(const std::string& line)
+		static inline bool isWhiteSpace(const char c)
 		{
-			std::string result;
-			size_t index = 0;
-			while (index < line.size() && (line[index] == '\t' || line[index] == ' ' || line[index] == '\r' || line[index] == '\n'))
-			{
-				index++;
-			}
-
-			if (index == line.size())
-				return result;
-
-			while (index < line.size())
-			{
-				result.push_back(line[index]);
-				index++;
-			}
-
-			index = result.size() - 1;
-			while (index >= 0 && (result[index] == '\t' || result[index] == ' ' || result[index] == '\r' || result[index] == '\n'))
-			{
-				index--;
-			}
-
-			result.resize(index + 1);
-			return result;
+			return c == '\t' || c == ' ' || c == '\r' || c == '\n';
 		}
 
-		static bool stringStartsWith(const std::string& str, const char* prefix)
+		static std::string stringTrim(const std::string& input)
 		{
-			return memcmp(prefix, str.data(), strlen(prefix)) == 0;
+			std::string output;
+
+			size_t index = 0, inputSize = input.size();
+			while (index < inputSize && isWhiteSpace(input[index]))
+				index++;
+
+			if (index == inputSize)
+				return output;
+
+			while (index < inputSize)
+			{
+				output.push_back(input[index]);
+				index++;
+			}
+
+			index = output.size() - 1;
+			while (index >= 0 && isWhiteSpace(output[index]))
+				index--;
+
+			output.resize(index + 1);
+			return std::move(output);
+		}
+
+		static inline bool stringStartsWith(const std::string& str, const char* prefix)
+		{
+			size_t prefixLength = strlen(prefix);
+			if (prefixLength > str.size())
+				return false;
+			return memcmp(prefix, str.data(), prefixLength) == 0;
 		}
 
 		static bool stringParseThreeValues(const std::string& str, float& v1, float& v2, float& v3)
@@ -231,8 +237,8 @@ namespace microstl
 		static bool isLittleEndian()
 		{
 			int16_t number = 1;
-			const char* ptr = reinterpret_cast<const char*>(&number);
-			return ptr[0] == 1;
+			char* ptr = reinterpret_cast<char*>(&number);
+			return *ptr == 1;
 		}
 
 		static Result readAsciiStream(std::istream& is, Handler& handler)
@@ -300,8 +306,8 @@ namespace microstl
 						return Result::UnexpectedError;
 					}
 					activeFacet = true;
-					line = stringTrim(line.substr(12));
-					if (!stringParseThreeValues(line, n[0], n[1], n[2]))
+					std::string tmp = stringTrim(line.substr(12));
+					if (!stringParseThreeValues(tmp, n[0], n[1], n[2]))
 					{
 						handler.onError(lineNumber);
 						return Result::ParserError;
@@ -350,8 +356,8 @@ namespace microstl
 						handler.onError(lineNumber);
 						return Result::UnexpectedError;
 					}
-					line = stringTrim(line.substr(6));
-					if (!stringParseThreeValues(line, v[vertexCount * 3 + 0], v[vertexCount * 3 + 1], v[vertexCount * 3 + 2]))
+					std::string tmp = stringTrim(line.substr(6));
+					if (!stringParseThreeValues(tmp, v[vertexCount * 3 + 0], v[vertexCount * 3 + 1], v[vertexCount * 3 + 2]))
 					{
 						handler.onError(lineNumber);
 						return Result::ParserError;
@@ -380,7 +386,7 @@ namespace microstl
 			is.read(buffer, 4);
 			if (!is)
 				return Result::MissingDataError;
-			uint32_t facetCount = reinterpret_cast<uint32_t*>(buffer)[0];
+			uint32_t facetCount = *reinterpret_cast<uint32_t*>(buffer);
 			if (facetCount == 0)
 				return Result::MissingDataError;
 			if (facetCount > BINARY_FACET_LIMIT)
@@ -520,8 +526,8 @@ namespace microstl
 		static bool isLittleEndian()
 		{
 			int16_t number = 1;
-			const char* ptr = reinterpret_cast<const char*>(&number);
-			return ptr[0] == 1;
+			char* ptr = reinterpret_cast<char*>(&number);
+			return *ptr == 1;
 		}
 
 		static Result writeAsciiStream(std::ostream& os, Provider& provider)
@@ -565,28 +571,25 @@ namespace microstl
 
 			size_t facetCount = provider.getFacetCount();
 			uint32_t tmp = static_cast<uint32_t>(facetCount);
-			os.write(reinterpret_cast<const char*>(&tmp), 4);
+			os.write(reinterpret_cast<char*>(&tmp), 4);
 
 			float nullNormals[3] = { 0 ,0,0 };
 			bool nullifyNormals = provider.nullifyNormals();
-
 			bool writeAttributes = provider.writeAttributes();
-
 			for (size_t i = 0; i < facetCount; ++i)
 			{
 				float n[3] = { 0, };
 				float v[9] = { 0, };
 				provider.getFacet(i, v + 0, v + 3, v + 6, n);
 				if (nullifyNormals)
-					os.write(reinterpret_cast<const char*>(nullNormals), 3 * sizeof(float));
+					os.write(reinterpret_cast<char*>(nullNormals), 3 * sizeof(float));
 				else
-					os.write(reinterpret_cast<const char*>(n), 3 * sizeof(float));
-				os.write(reinterpret_cast<const char*>(v), 9 * sizeof(float));
-
+					os.write(reinterpret_cast<char*>(n), 3 * sizeof(float));
+				os.write(reinterpret_cast<char*>(v), 9 * sizeof(float));
 				uint8_t a[2] = { 0, 0 };
 				if (writeAttributes)
 					provider.getFacetAttributes(i, a);
-				os.write(reinterpret_cast<const char*>(a), 2);
+				os.write(reinterpret_cast<char*>(a), 2);
 			}
 
 			return Result::Success;
@@ -642,12 +645,15 @@ namespace microstl
 
 	struct MeshReaderHandler : Reader::Handler
 	{
+		// Results
 		Mesh mesh;
 		std::string name;
 		std::vector<uint8_t> header;
 		bool ascii;
 		size_t errorLineNumber;
 		microstl::Result result;
+
+		// Settings
 		bool forceNormals = false;
 		bool disableNormals = false;
 
