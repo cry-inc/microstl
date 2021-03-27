@@ -225,6 +225,42 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test parsing an otherwise valid ASCII file that exceeds the line limit");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("exceed_ascii_line_limit.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::LineLimitError);
+		REQUIRE(handler.name == "minimal");
+		REQUIRE(handler.ascii);
+		REQUIRE(handler.errorLineNumber == 3);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.empty());
+	}
+
+	{
+		TEST_SCOPE("Test parsing an incomplete vertex in an ASCII file");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("incomplete_vertex_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::ParserError);
+		REQUIRE(handler.name == "minimal");
+		REQUIRE(handler.ascii);
+		REQUIRE(handler.errorLineNumber == 6);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.empty());
+	}
+
+	{
+		TEST_SCOPE("Test parsing an incomplete normale in an ASCII file");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("incomplete_normal_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::ParserError);
+		REQUIRE(handler.name == "minimal");
+		REQUIRE(handler.ascii);
+		REQUIRE(handler.errorLineNumber == 2);
+		REQUIRE(handler.header.empty());
+		REQUIRE(handler.mesh.facets.empty());
+	}
+
+	{
 		TEST_SCOPE("Test parsing an empty file and check for correct error");
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("empty_file.stl"), handler);

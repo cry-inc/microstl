@@ -120,7 +120,7 @@ namespace microstl
 		}
 
 		// Some internal safety limits
-		static inline const size_t ASCII_LINE_LIMIT = 512u;
+		static inline const size_t ASCII_LINE_LIMIT = 256u;
 		static inline const uint32_t BINARY_FACET_LIMIT = 500000000u;
 		static inline const float NORMAL_LENGTH_DEVIATION_LIMIT = 0.001f;
 
