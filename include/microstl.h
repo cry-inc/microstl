@@ -433,10 +433,6 @@ namespace microstl
 		struct imstream : virtual membuf, std::istream
 		{
 			imstream(char const* base, size_t size) : membuf(base, size), std::istream(static_cast<std::streambuf*>(this)) {}
-			std::iostream::pos_type seekpos(std::iostream::pos_type sp, std::ios_base::openmode which) override
-			{
-				return seekoff(sp - std::iostream::pos_type(std::iostream::off_type(0)), std::ios_base::beg, which);
-			}
 			std::iostream::pos_type seekoff(std::iostream::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which = std::ios_base::in) override
 			{
 				if (dir == std::ios_base::cur) gbump(static_cast<int>(off));
