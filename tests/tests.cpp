@@ -383,5 +383,18 @@ int main()
 		std::filesystem::remove("binary.stl");
 	}
 
+	{
+		TEST_SCOPE("Test string conversion for results");
+		REQUIRE(microstl::getResultString(microstl::Result::Undefined) == "Undefined");
+		REQUIRE(microstl::getResultString(microstl::Result::Success) == "Success");
+		REQUIRE(microstl::getResultString(microstl::Result::FileError) == "FileError");
+		REQUIRE(microstl::getResultString(microstl::Result::MissingDataError) == "MissingDataError");
+		REQUIRE(microstl::getResultString(microstl::Result::UnexpectedError) == "UnexpectedError");
+		REQUIRE(microstl::getResultString(microstl::Result::ParserError) == "ParserError");
+		REQUIRE(microstl::getResultString(microstl::Result::LineLimitError) == "LineLimitError");
+		REQUIRE(microstl::getResultString(microstl::Result::FacetCountError) == "FacetCountError");
+		REQUIRE(microstl::getResultString(microstl::Result::EndianError) == "EndianError");
+	}
+
 	return 0;
 }
