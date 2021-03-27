@@ -29,7 +29,7 @@ struct CustomHandler : microstl::Reader::Handler
 
 	void onError(size_t lineNumber) override
 	{
-		std::cout << "Error detected on line: " << lineNumber << std::endl;
+		std::cerr << "Error detected on line: " << lineNumber << std::endl;
 	}
 
 	void onFacet(const float v1[3], const float v2[3], const float v3[3], const float n[3]) override
@@ -51,19 +51,26 @@ struct CustomHandler : microstl::Reader::Handler
 	}
 };
 
-int main()
+int main(int argc, char** argv)
 {
+	if (argc < 2)
+	{
+		// The recommended test file is simple_ascii.stl
+		std::cerr << "Missing argument for input file!" << std::endl;
+		return 1;
+	}
+
 	/// Create an instance of the custom handler that will receive the STL data
 	CustomHandler handler;
 
 	// Parse STL file with the custom handler as receiver
-	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
+	std::filesystem::path filePath(argv[1]);
 	microstl::Result result = microstl::Reader::readStlFile(filePath, handler);
 	
 	// Error handling
 	if (result != microstl::Result::Success)
 	{
-		std::cout << "Error: " << microstl::getResultString(result) << std::endl;
+		std::cerr << "Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 

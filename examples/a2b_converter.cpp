@@ -2,14 +2,21 @@
 
 #include <iostream>
 
-int main()
+int main(int argc, char** argv)
 {
-	std::filesystem::path filePath = "../../testdata/simple_ascii.stl";
+	if (argc < 2)
+	{
+		// The recommended test file is simple_ascii.stl
+		std::cerr << "Missing argument for input file!" << std::endl;
+		return 1;
+	}
+
+	std::filesystem::path filePath(argv[1]);
 	microstl::MeshReaderHandler meshHandler;
 	microstl::Result result = microstl::Reader::readStlFile(filePath, meshHandler);
 	if (result != microstl::Result::Success)
 	{
-		std::cout << "Reading Error: " << microstl::getResultString(result) << std::endl;
+		std::cerr << "Reading Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 
@@ -24,7 +31,7 @@ int main()
 	result = microstl::Writer::writeStlFile(newPath, provider);
 	if (result != microstl::Result::Success)
 	{
-		std::cout << "Writing Error: " << microstl::getResultString(result) << std::endl;
+		std::cerr << "Writing Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 

@@ -2,15 +2,21 @@
 
 #include <iostream>
 
-int main()
+int main(int argc, char** argv)
 {
-	std::filesystem::path filePath = "../../testdata/box_meshlab_ascii.stl";
+	if (argc < 2)
+	{
+		// The recommended test file is box_meshlab_ascii.stl
+		std::cerr << "Missing argument for input file!" << std::endl;
+		return 1;
+	}
 
+	std::filesystem::path filePath(argv[1]);
 	microstl::MeshReaderHandler meshHandler;
 	microstl::Result result = microstl::Reader::readStlFile(filePath, meshHandler);
 	if (result != microstl::Result::Success)
 	{
-		std::cout << "Error: " << microstl::getResultString(result) << std::endl;
+		std::cerr << "Error: " << microstl::getResultString(result) << std::endl;
 		return 1;
 	}
 
@@ -22,7 +28,7 @@ int main()
 	// vertex indices rather than full coordinate values (note the type prefix "FV").
 	microstl::FVMesh deduplicatedVerticesMesh = microstl::deduplicateVertices(duplicatedVerticesMesh);
 
-	// Since our example file is a cube with 2 triangles for each side we have 6 * 2 = 12 triangles.
+	// In case of our example cube with 2 triangles for each side we have 6 * 2 = 12 triangles.
 	// Since each triangle had three vertices, we started with 3 * 12 = 36 vertices.
 	// After the deduplication we should have only 8 (one for each corner of the cube).
 	std::cout << "Old Vertex Count: " << duplicatedVerticesMesh.facets.size() * 3 << std::endl;
