@@ -8,3 +8,4 @@
 /*.gcno
 /coverage
 /cov.dat
+/testdata/simple_ascii_binary.stl
