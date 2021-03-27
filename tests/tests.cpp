@@ -1,4 +1,5 @@
 ﻿#include <microstl.h>
+#include <random>
 
 #define TEST_SCOPE(x)
 #define REQUIRE(x) {if (!(x)) throw std::runtime_error("Test assertioin failed!"); }
@@ -303,6 +304,49 @@ int main()
 		REQUIRE(!handler.ascii);
 		REQUIRE(handler.header.size() == 80);
 		REQUIRE(handler.mesh.facets.size() == 5);
+	}
+
+	{
+		TEST_SCOPE("Primitive fuzzing with some selected data");
+		struct setup {
+			size_t seed;
+			size_t size;
+			microstl::Result expectedResult;
+		};
+		std::vector<setup> setups = {
+			{12345, 12, microstl::Result::MissingDataError},
+			{54321, 81, microstl::Result::MissingDataError},
+			{67890, 84, microstl::Result::FacetCountError},
+			{1, 99, microstl::Result::MissingDataError},
+		};
+		for (const auto& setup : setups)
+		{
+			std::vector<uint8_t> data(setup.size);
+			std::mt19937 gen(setup.seed);
+			for (size_t s = 0; s < setup.size; ++s)
+				data[s] = gen.operator()();
+			microstl::MeshReaderHandler handler;
+			auto buffer = reinterpret_cast<const char*>(data.data());
+			auto result = microstl::Reader::readStlBuffer(buffer, data.size(), handler);
+			REQUIRE(handler.result == result);
+			REQUIRE(result == setup.expectedResult);
+		}
+	}
+
+	{
+		TEST_SCOPE("Primitive fuzzing with some deterministic random data");
+		for (size_t size = 84; size < 4096; ++size)
+		{
+			std::vector<uint8_t> data(size);
+			std::mt19937 gen(size);
+			for (size_t s = 0; s < size; ++s)
+				data[s] = gen.operator()();
+			microstl::MeshReaderHandler handler;
+			auto buffer = reinterpret_cast<const char*>(data.data());
+			auto result = microstl::Reader::readStlBuffer(buffer, data.size(), handler);
+			REQUIRE(handler.result == result);
+			REQUIRE(result != microstl::Result::Success);
+		}
 	}
 
 	{
