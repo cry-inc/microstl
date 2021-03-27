@@ -309,7 +309,7 @@ int main()
 	{
 		TEST_SCOPE("Primitive fuzzing with some selected data");
 		struct setup {
-			size_t seed;
+			uint32_t seed;
 			size_t size;
 			microstl::Result expectedResult;
 		};
@@ -335,7 +335,7 @@ int main()
 
 	{
 		TEST_SCOPE("Primitive fuzzing with some deterministic random data");
-		for (size_t size = 84; size < 4096; ++size)
+		for (uint32_t size = 84; size < 4096; ++size)
 		{
 			std::vector<uint8_t> data(size);
 			std::mt19937 gen(size);
