@@ -697,11 +697,13 @@ namespace microstl
 	struct MeshProvider : microstl::Writer::Provider
 	{
 		const microstl::Mesh& mesh;
-		bool ascii;
+		bool ascii = false;
+		bool clearNormals = false;
 
-		MeshProvider(const microstl::Mesh& m, bool asciiMode = false) : mesh(m), ascii(asciiMode) {}
+		MeshProvider(const microstl::Mesh& m) : mesh(m) {}
 		size_t getFacetCount() override { return mesh.facets.size(); }
 		bool asciiMode() override { return ascii; }
+		bool nullifyNormals() override { return clearNormals; }
 
 		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
 		{
@@ -717,11 +719,13 @@ namespace microstl
 	struct FVMeshProvider : microstl::Writer::Provider
 	{
 		const microstl::FVMesh& mesh;
-		bool ascii;
+		bool ascii = false;
+		bool clearNormals = false;
 
-		FVMeshProvider(const microstl::FVMesh& m, bool asciiMode = false) : mesh(m), ascii(asciiMode) {}
+		FVMeshProvider(const microstl::FVMesh& m) : mesh(m) {}
 		size_t getFacetCount() override { return mesh.facets.size(); }
 		bool asciiMode() override { return ascii; }
+		bool nullifyNormals() override { return clearNormals; }
 
 		void getFacet(size_t index, float v1[3], float v2[3], float v3[3], float n[3]) override
 		{

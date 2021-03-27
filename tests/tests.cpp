@@ -301,10 +301,47 @@ int main()
 		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
 
-		microstl::MeshProvider provider(handler.mesh);
+		// Default mode is binary
+		microstl::MeshProvider providerBinary(handler.mesh);
 		std::filesystem::path path("tmp.stl");
 		REQUIRE(!std::filesystem::exists(path));
-		res = microstl::Writer::writeStlFile(path, provider);
+		res = microstl::Writer::writeStlFile(path, providerBinary);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(path));
+		std::filesystem::remove(path);
+
+		// Optional ASCII mode
+		microstl::MeshProvider providerAscii(handler.mesh);
+		providerAscii.ascii = true;
+		REQUIRE(!std::filesystem::exists(path));
+		res = microstl::Writer::writeStlFile(path, providerAscii);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(path));
+		std::filesystem::remove(path);
+	}
+
+	{
+		TEST_SCOPE("Test writer with nulled out normals");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		// Default mode is binary
+		microstl::MeshProvider providerBinary(handler.mesh);
+		providerBinary.clearNormals = true;
+		std::filesystem::path path("tmp.stl");
+		REQUIRE(!std::filesystem::exists(path));
+		res = microstl::Writer::writeStlFile(path, providerBinary);
+		REQUIRE(res == microstl::Result::Success);
+		REQUIRE(std::filesystem::exists(path));
+		std::filesystem::remove(path);
+
+		// Optional ASCII mode
+		microstl::MeshProvider providerAscii(handler.mesh);
+		providerAscii.clearNormals = true;
+		providerAscii.ascii = true;
+		REQUIRE(!std::filesystem::exists(path));
+		res = microstl::Writer::writeStlFile(path, providerAscii);
 		REQUIRE(res == microstl::Result::Success);
 		REQUIRE(std::filesystem::exists(path));
 		std::filesystem::remove(path);
@@ -372,6 +409,19 @@ int main()
 	}
 
 	{
+		TEST_SCOPE("Test writer with invalid file path");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+
+		microstl::MeshProvider provider(handler.mesh);
+		std::filesystem::path path("folder/does/not/exist/out.stl");
+		res = microstl::Writer::writeStlFile(path, provider);
+		REQUIRE(res == microstl::Result::FileError);
+		REQUIRE(!std::filesystem::exists(path));
+	}
+
+	{
 		TEST_SCOPE("Full cycle test of reader, deduplicator and writer");
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("box_meshlab_ascii.stl"), handler);
@@ -386,15 +436,18 @@ int main()
 		REQUIRE(res == microstl::Result::Success);
 
 		res = microstl::Reader::readStlFile("binary.stl", handler);
+		REQUIRE(!handler.ascii);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
 		REQUIRE(handler.mesh.facets.size() == 12);
 
-		microstl::MeshProvider provider(handler.mesh, true);
+		microstl::MeshProvider provider(handler.mesh);
+		provider.ascii = true;
 		res = microstl::Writer::writeStlFile("ascii.stl", provider);
 		REQUIRE(res == microstl::Result::Success);
 
 		res = microstl::Reader::readStlFile("ascii.stl", handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.ascii);
 		REQUIRE(handler.mesh.facets.size() == 12);
 
 		for (size_t i = 0; i < 12; i++)
