@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <streambuf>
 #include <vector>
+#include <array>
+#include <algorithm>
 #include <exception>
 
 namespace microstl
@@ -127,11 +129,17 @@ namespace microstl
 	private:
 		static bool isAsciiFormat(std::istream& is)
 		{
-			const char expected[] = {'s', 'o', 'l', 'i', 'd'};
-			char header[sizeof(expected)] = { 0, };
-			is.read(header, sizeof(expected));
-			is.seekg(0, std::ios::beg);
-			return memcmp(expected, header, sizeof(expected)) == 0;
+			std::array<char, 256> chars;
+			is.read(chars.data(), 256);
+			std::string buffer(chars.data(), chars.size());
+			std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c){ return std::tolower(c); });
+			bool has_solid = buffer.find("solid") != std::string::npos;
+			bool has_ret = buffer.find('\n') != std::string::npos;
+			bool has_facet = buffer.find("facet") != std::string::npos;
+			bool has_normal = buffer.find("normal") != std::string::npos;
+			is.clear();
+			is.seekg(0);
+			return has_solid && has_ret && has_facet && has_normal;
 		}
 
 		static bool readNextLine(std::istream& is, std::string& output)
