@@ -548,10 +548,10 @@ namespace microstl
 
 		static Result writeAsciiStream(std::ostream& os, Provider& provider)
 		{
-			os << "solid";
+			os << "solid ";
 			std::string name = provider.getName();
 			if (!name.empty())
-				os << " " << name;
+				os << name;
 			os << "\n";
 
 			size_t facetCount = provider.getFacetCount();
