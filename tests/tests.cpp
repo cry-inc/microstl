@@ -54,7 +54,7 @@ int main()
 		microstl::MeshReaderHandler handler;
 		auto res = microstl::Reader::readStlFile(findTestFile("crazy_whitespace_ascii.stl"), handler);
 		REQUIRE(res == handler.result && res == microstl::Result::Success);
-		REQUIRE(handler.name == "min \t imal");
+		REQUIRE(handler.name == "MIN \t imal");
 		REQUIRE(handler.ascii);
 		REQUIRE(handler.errorLineNumber == 0);
 		REQUIRE(handler.header.empty());
@@ -97,6 +97,18 @@ int main()
 		for (size_t i = 0; i < 80; i++)
 			REQUIRE(handler.header[i] == 0);
 		REQUIRE(handler.mesh.facets.size() == 2330);
+	}
+
+	{
+		TEST_SCOPE("Parse small binary STL with misleading header");
+		microstl::MeshReaderHandler handler;
+		auto res = microstl::Reader::readStlFile(findTestFile("misleading_binary_header.stl"), handler);
+		REQUIRE(res == handler.result && res == microstl::Result::Success);
+		REQUIRE(handler.name.empty());
+		REQUIRE(!handler.ascii);
+		REQUIRE(handler.errorLineNumber == 0);
+		REQUIRE(handler.header.size() == 80);
+		REQUIRE(handler.mesh.facets.size() == 1);
 	}
 
 	{
