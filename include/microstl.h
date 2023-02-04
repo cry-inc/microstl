@@ -129,17 +129,23 @@ namespace microstl
 	private:
 		static bool isAsciiFormat(std::istream& is)
 		{
-			std::array<char, 256> chars;
-			is.read(chars.data(), 256);
-			std::string buffer(chars.data(), chars.size());
-			std::transform(buffer.begin(), buffer.end(), buffer.begin(), [](auto c){ return std::tolower(c); });
-			bool has_solid = buffer.find("solid") != std::string::npos;
-			bool has_ret = buffer.find('\n') != std::string::npos;
-			bool has_facet = buffer.find("facet") != std::string::npos;
-			bool has_normal = buffer.find("normal") != std::string::npos;
+			// Some CAD applications create binary files that have the string "solid" inside the header.
+			// This means we cannot just check the first word, but also need some additional heuristic checks.
+			// The checks below are inspired by https://github.com/sreiter/stl_reader/
+
+			std::array<char, 256> buffer{};
+			is.read(buffer.data(), buffer.size());
+			std::string str(buffer.data(), is.gcount());
 			is.clear();
-			is.seekg(0);
-			return has_solid && has_ret && has_facet && has_normal;
+			is.seekg(0, std::ios_base::beg);
+
+			std::transform(str.begin(), str.end(), str.begin(), [](auto c){ return std::tolower(c); });
+			bool has_solid = str.find("solid") != std::string::npos;
+			bool has_newline = str.find('\n') != std::string::npos;
+			bool has_facet = str.find("facet") != std::string::npos;
+			bool has_normal = str.find("normal") != std::string::npos;
+
+			return has_solid && has_newline && has_facet && has_normal;
 		}
 
 		static bool readNextLine(std::istream& is, std::string& output)
