@@ -4,7 +4,7 @@ jobs:
   build-and-test-linux-clang:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Clang
       run: sudo apt-get install -y clang
     - name: Set Clang as default compiler
@@ -23,7 +23,7 @@ jobs:
   build-and-test-linux-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Create Build Folder
       run: cmake -E make_directory ${{github.workspace}}/build
     - name: Configure CMake
@@ -38,7 +38,7 @@ jobs:
   build-and-test-windows-vs:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Create Build Folder
       run: cmake -E make_directory ${{github.workspace}}/build
     - name: Configure CMake
@@ -53,7 +53,7 @@ jobs:
   code-coverage-tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install lcov
       run: sudo apt-get install -y lcov
     - name: Compile with coverage enabled
@@ -66,7 +66,7 @@ jobs:
       run: lcov --no-external -d . --capture -o cov.dat
     - name: Generate HTML report
       run: genhtml cov.dat --output-directory coverage
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: coverage-report
         path: coverage/**/*
