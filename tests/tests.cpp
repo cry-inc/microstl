@@ -2,7 +2,7 @@
 #include <random>
 
 #define TEST_SCOPE(x)
-#define REQUIRE(x) {if (!(x)) throw std::runtime_error("Test assertioin failed!"); }
+#define REQUIRE(x) {if (!(x)) throw std::runtime_error("Test assertion failed!"); }
 
 std::filesystem::path findTestFile(std::string fileName)
 {
