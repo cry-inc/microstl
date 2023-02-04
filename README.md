@@ -27,8 +27,9 @@ A small C++ library for reading and writing STL mesh files.
 6. Check return value of the reader for `microstl::Result::Success` and handle any errors 
 7. Access the triangle data in the mesh handler at `meshHandler.mesh.facets`
 
-Check out the `examples` folder for more code examples.
-The file `custom_handler.cpp` shows how to write your own handler.
+You can find the complete example code [here](examples/minimal_example.cpp).
+Check out the [examples folder](examples/) for more examples.
+The file [custom_handler.cpp](examples/custom_handler.cpp) shows how to write your own handler.
 Such a custom handler can be used to fill your existing mesh data structues.
 
 The writer follows the same principle. You can use the included simple mesh data structures or
